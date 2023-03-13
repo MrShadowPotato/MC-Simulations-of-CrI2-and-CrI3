@@ -6,7 +6,7 @@ program network_generator
     real(8), dimension(8,3) :: basis_vectors
     real(8), parameter :: a1(3) = [6.8911914825, 0.0, 0.0]
     real(8), parameter :: a2(3) = [-3.4488059462999998, 5.9711638719, 0.0]
-    character(len=2), dimension(8) :: element = (/ 'Cr', 'Cr', 'I', 'I', 'I', 'I', 'I', 'I' /)
+    character(len=2), dimension(8) :: element = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     
     !Input para las dimensiones de la grilla
     write(6,*)'Numero de celdas eje x?'
@@ -33,14 +33,15 @@ program network_generator
     !Abrir archivo
     open(1, file='CrI3structure.xyz', status='unknown')
 
-!
-
+    !Numero de atomos y comentario
+    write(1,*) N
+    write(1,*) 'CrI3 monocapa' 
     !Genera la grilla
     do i=1, nx
         do j=1, ny
             !Vector posicion para el origen de las celdas.
             do k = 1, 8
-                write(10, '(A2, 3F12.6)') element(k), &
+                write(1, '(A2, 3(F12.6))') element(k), &
                     a1(1)*REAL(i) + a2(1)*REAL(j) + basis_vectors(k,1), &
                     a1(2)*REAL(i) + a2(2)*REAL(j) + basis_vectors(k,2), &
                     a1(3)*REAL(i) + a2(3)*REAL(j) + basis_vectors(k,3)

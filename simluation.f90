@@ -13,7 +13,7 @@ program simulation
     real(8) :: x, y, z
     
     ! Open and read the atoms.xyz file containing the number of atoms and their positions.
-    open(10, file='atoms.xyz', status='old')
+    open(10, file='./structures/SpinPositionsCrI3.xyz', status='old')
     read(10,*) n
     ! Read in atom positions from file
     read(10, '(A)') ! Skip the second line

@@ -7,6 +7,7 @@ program simulation
     ! Allocate arrays to store atom positions and neighbor information.
     real(8), allocatable, dimension(:,:) :: atoms
     integer, allocatable, dimension(:,:) :: neighbors
+    character(len=2) :: element
     
     integer :: i
     real(8) :: x, y, z
@@ -18,8 +19,7 @@ program simulation
     read(10, '(A)') ! Skip the second line
     allocate(atoms(n,3))
     do i = 1, n
-        read(10,*) x, y, z
-        Print *, x, y, z
+        read(10,*) element, x, y, z
         atoms(i,:) = [x, y, z]
     end do
     close(10)
@@ -71,5 +71,26 @@ contains
             end do
         end do
     end function find_neighbors
+
+    ! This subroutine writes atom positions to a file in the xyz format.
+    subroutine write_xyz( filename, natoms, comment, element, position )
+        implicit none
+        character(len=*), intent(in) :: filename
+        integer, intent(in) :: natoms
+        character(len=*), intent(in) :: comment
+        character(len=2), dimension(natoms), intent(in) :: element
+        real(8), dimension(natoms,3), intent(in) :: position
+    
+        integer :: i
+    
+        open(1, file=filename, status='unknown')
+        write(1,*) natoms
+        write(1,*) comment
+        do i=1, natoms
+            write(1, '(A2, 3(F16.10))') element(i), position(i,1), position(i,2), position(i,3)
+        end do
+        close(1)
+    end subroutine write_xyz
+    
 
 end program simulation

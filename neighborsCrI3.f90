@@ -8,6 +8,10 @@ program simulation
     real(8), allocatable, dimension(:,:) :: atoms
     integer, allocatable, dimension(:,:) :: neighbors
     character(len=2) :: element
+
+    !Primitive vectors
+    real(8), parameter :: a1(3) = [6.8911914825, 0.0, 0.0]
+    real(8), parameter :: a2(3) = [-3.4488059462999998, 5.9711638719, 0.0]
     
     integer :: i
     real(8) :: x, y, z
@@ -26,7 +30,7 @@ program simulation
     
     ! Allocate the neighbors array and find the neighbors for each atom.
     allocate(neighbors(n,3))
-    neighbors = find_neighbors(atoms, 4.0d0, 3)
+    neighbors = find_neighbors(atoms, 4.0d0, 3, a1*3, a2*3)
 
     ! Print the neighbors for each atom.
     open(1, file='structures/neighborsCrI3.txt', status='replace')
@@ -46,29 +50,37 @@ contains
     end function distance
 
     ! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
-    function find_neighbors(vectors, max_distance, max_neighbors) result(neighbors)
+    function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(neighbors)
         implicit none
         real(8), dimension(:,:), intent(in) :: vectors
+        real(8), dimension(3), intent(in) :: vx, vy !Lattice vectors for periodic boundary conditions 
         integer, intent(in) :: max_neighbors
         real(8), intent(in) :: max_distance
-        integer :: i, j, n, count
+        integer :: i, j, n, count, n1, n2
         integer, dimension(size(vectors,1), max_neighbors) :: neighbors
+        real(8) :: dist ! Distance between two atoms
         n = size(vectors,1)
         
         ! Loop through all atoms and find their neighbors within the specified distance.
         do i = 1, n
             count = 0
             do j = 1, n
-                ! Check if the atoms are not the same and if their distance is less than the maximum allowed distance.
-                if (i /= j .and. distance(vectors(i,:), vectors(j,:)) <  max_distance) then
-                    count = count + 1
-                    ! If the atom already has the maximum number of neighbors, exit the loop.
-                    if (count > max_neighbors) then
-                        exit
-                    end if
-                    ! Store the index of the neighboring atom.
-                    neighbors(i,count) = j
-                end if
+                do n1 = -1, 1
+                    do n2 = -1, 1
+                        ! Calculate the distance between the two atoms.
+                        dist = distance(vectors(i,:), vectors(j,:) + n1*vx + n2*vy)
+                        ! Check if the atoms are not the same and if their distance is less than the maximum allowed distance.
+                        if (i /= j .and. dist <  max_distance) then
+                            count = count + 1
+                            ! If the atom already has the maximum number of neighbors, exit the loop.
+                            if (count > max_neighbors) then
+                                exit
+                            end if
+                            ! Store the index of the neighboring atom.
+                            neighbors(i,count) = j
+                        end if
+                    end do
+                end do
             end do
         end do
     end function find_neighbors

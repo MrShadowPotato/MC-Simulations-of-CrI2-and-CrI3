@@ -59,21 +59,22 @@ program structuresCrI3
 contains 
 
 !Needs to be modified!!!!!!!!!!!
-subroutine write_xyz( filename, natoms, comment, element, position )
+subroutine write_xyz( filename, natoms, comment, elements, position )
     implicit none
     character(len=*), intent(in) :: filename
     integer, intent(in) :: natoms
     character(len=*), intent(in) :: comment
-    character(len=2), dimension(natoms), intent(in) :: element
+    character(len=2), dimension(natoms), intent(in) :: elements
     real(8), dimension(natoms,3), intent(in) :: position
-
-    integer :: i
-
+    integer :: i, j, ncells
+    ncells = natoms / size(elements)
     open(1, file=filename, status='unknown')
     write(1,*) natoms
     write(1,*) comment
-    do i=1, natoms
-        write(1, '(A2, 3(F16.10))') element(i), position(i,1), position(i,2), position(i,3)
+    do i=1, ncells
+        do j=1, size(elements)
+            write(1, '(A2, 3(F16.10))') elements(j), position(i,1), position(i,2), position(i,3)
+        end do
     end do
     close(1)
 end subroutine write_xyz

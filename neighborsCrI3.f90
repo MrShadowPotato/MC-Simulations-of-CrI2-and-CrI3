@@ -13,7 +13,7 @@ program simulation
     real(8) :: x, y, z
     
     ! Open and read the atoms.xyz file containing the number of atoms and their positions.
-    open(10, file='atoms.xyz', status='old')
+    open(10, file='structures/SpinPositionsCrI3.xyz', status='old')
     read(10,*) n
     ! Read in atom positions from file
     read(10, '(A)') ! Skip the second line
@@ -29,7 +29,7 @@ program simulation
     neighbors = find_neighbors(atoms, 4.0d0, 3)
 
     ! Print the neighbors for each atom.
-    open(1, file='neighbors.txt', status='replace')
+    open(1, file='structures/neighborsCrI3.txt', status='replace')
     do i = 1, n
         write(1,*) i, neighbors(i,1), neighbors(i,2), neighbors(i,3)
     end do
@@ -41,7 +41,8 @@ contains
         implicit none
         real(8), dimension(:), intent(in) :: v1, v2
         real(8) :: dist
-        dist = sqrt(sum((v1-v2)**2))
+        !dist = sqrt(sum((v1-v2)**2))
+        dist = sqrt(dot_product(v1-v2, v1-v2))
     end function distance
 
     ! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).

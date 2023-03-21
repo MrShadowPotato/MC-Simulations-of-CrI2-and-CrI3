@@ -4,6 +4,7 @@ program structuresCrI3
 
     ! Define variables.
     integer :: natoms, i, j, k, l, m, n, count, n1, n2, nx, ny
+    real(8), dimension(:,:), allocatable :: coordinates
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
@@ -53,27 +54,33 @@ program structuresCrI3
     ! Calculate the number of atoms in the structure.
     natoms = nx*ny*8
 
+    coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
+    !print *, coordinates
+    call write_xyz('structures/CrI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
 
     
 
 contains 
 
-!Needs to be modified!!!!!!!!!!!
-subroutine write_xyz( filename, natoms, comment, elements, position )
+subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
     implicit none
     character(len=*), intent(in) :: filename
     integer, intent(in) :: natoms
-    character(len=*), intent(in) :: comment
-    character(len=2), dimension(natoms), intent(in) :: elements
-    real(8), dimension(natoms,3), intent(in) :: position
-    integer :: i, j, ncells
+    integer, intent(in) :: nx, ny
+    character(len=*), intent(in) :: comment !Optional comment to be written to the file.
+    character(len=2), dimension(:), intent(in) :: elements
+    real(8), dimension(natoms,3), intent(in) :: coordinates
+    integer :: i, j, ncells, count
     ncells = natoms / size(elements)
     open(1, file=filename, status='unknown')
     write(1,*) natoms
-    write(1,*) comment
+    write(1,*) 'Numbers of cells for x and y:  ', nx, ny
+    count = 0 
     do i=1, ncells
         do j=1, size(elements)
-            write(1, '(A2, 3(F16.10))') elements(j), position(i,1), position(i,2), position(i,3)
+            count = count + 1
+            write(1, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
+            write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
         end do
     end do
     close(1)
@@ -132,13 +139,14 @@ function generate_structure(basis, primitive, nx, ny) result(structure)
     real(8), dimension(2,3), intent(in) :: primitive
     integer, intent(in) :: nx, ny
     real(8), dimension(nx*ny*size(basis,1),3) :: structure
-    integer :: i, j, k, l, m, n, count
+    integer :: i, j, k, n, count
     n = size(basis,1)
     count = 0
     do i = 1, nx
         do j = 1, ny
-            do k = 1, size(primitive,1)
-                    structure(count,:) = basis(l,:) + primitive(1,:)*nx + primitive(2,:)*ny 
+            do k = 1, size(basis,1)
+                count = count + 1
+                structure(count,:) = basis(k,:) + primitive(1,:)*nx + primitive(2,:)*ny
             end do
         end do
     end do

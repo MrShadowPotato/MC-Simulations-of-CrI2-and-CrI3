@@ -57,11 +57,12 @@ program structuresCrI3
     coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
     !print *, coordinates
     call write_xyz('structures/CrI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
-
+    
     
 
 contains 
 
+! This subroutine writes the coordinates to a xyz file.
 subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
     implicit none
     character(len=*), intent(in) :: filename
@@ -87,8 +88,7 @@ subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
 end subroutine write_xyz
 
 
-
- ! This function calculates the Euclidean distance between two points (v1 and v2).
+! This function calculates the Euclidean distance between two points (v1 and v2).
 function distance(v1, v2) result(dist)
     implicit none
     real(8), dimension(:), intent(in) :: v1, v2
@@ -133,12 +133,13 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(nei
     end do
 end function find_neighbors
 
-function generate_structure(basis, primitive, nx, ny) result(structure)
+! This function generates the coordinates of the atoms in the structure.
+function generate_structure(basis, primitive, nx, ny) result(coordinates)
     implicit none
     real(8), dimension(:,:), intent(in) :: basis
     real(8), dimension(2,3), intent(in) :: primitive
     integer, intent(in) :: nx, ny
-    real(8), dimension(nx*ny*size(basis,1),3) :: structure
+    real(8), dimension(nx*ny*size(basis,1),3) :: coordinates
     integer :: i, j, k, n, count
     n = size(basis,1)
     count = 0
@@ -146,8 +147,8 @@ function generate_structure(basis, primitive, nx, ny) result(structure)
         do j = 1, ny
             do k = 1, size(basis,1)
                 count = count + 1
-                structure(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
-                !print  *, count, structure(count,:)
+                coordinates(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
+                !print  *, count, coordinates(count,:)
             end do
         end do
     end do

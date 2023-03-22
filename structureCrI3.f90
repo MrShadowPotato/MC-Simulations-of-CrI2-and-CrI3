@@ -4,7 +4,7 @@ program structuresCrI3
 
     ! Define variables.
     integer :: natoms, i, j, k, l, m, n, count, n1, n2, nx, ny
-    real(8), dimension(:,:), allocatable :: coordinates
+    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
@@ -56,16 +56,25 @@ program structuresCrI3
 
     coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
     !print *, coordinates
-    call write_xyz('structures/CrI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
-    
-    
+    call write_structures('structures/CrI3.xyz', 'spins.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
+
+    ! Now that we have created the files containing the coordinates,
+    ! we can use them to create the array that will hold the neighbords for each Cr atom.
+    Cr_coordinates =  xyz_to_array('spins.xyz')
+    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
+    open(1, file='neighbor_test.txt', status='unknown')
+    do i = 1, nx*ny*2 !cambiar a variable
+        write(1,*) i, neighbors(i,1), neighbors(i,2), neighbors(i,3)
+    end do
+    close(1)
+
 
 contains 
 
 ! This subroutine writes the coordinates to a xyz file.
-subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
+subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coordinates)
     implicit none
-    character(len=*), intent(in) :: filename
+    character(len=*), intent(in) :: file1, file2
     integer, intent(in) :: natoms
     integer, intent(in) :: nx, ny
     character(len=*), intent(in) :: comment !Optional comment to be written to the file.
@@ -73,20 +82,43 @@ subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
     real(8), dimension(natoms,3), intent(in) :: coordinates
     integer :: i, j, ncells, count
     ncells = natoms / size(elements)
-    open(1, file=filename, status='unknown')
+    open(1, file=file1, status='unknown')
+    open(2, file=file2, status='unknown')
     write(1,*) natoms
     write(1,*) 'Numbers of cells for x and y:  ', nx, ny
+    write(2,*) nx*ny*2
+    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
     count = 0 
     do i=1, ncells
         do j=1, size(elements)
             count = count + 1
+            if ( elements(j) =='Cr' ) then
+                write(2, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
+            end if
             write(1, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
             !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
         end do
     end do
     close(1)
-end subroutine write_xyz
+    close(2)
+end subroutine write_structures
 
+function xyz_to_array(file) result(coordinates)
+    implicit none
+    character(len=*), intent(in) :: file
+    integer :: natoms
+    real(8), dimension(:,:), allocatable :: coordinates
+    integer :: i, j
+    character(len=2) :: element
+    open(1, file=file, status='old')
+    read(1,*) natoms
+    read(1,*) ! Skip the comment line.
+    allocate(coordinates(natoms,3))
+    do i=1, natoms
+        read(1,*) element, coordinates(i,1), coordinates(i,2), coordinates(i,3)
+    end do
+    close(1)
+end function xyz_to_array
 
 ! This function calculates the Euclidean distance between two points (v1 and v2).
 function distance(v1, v2) result(dist)
@@ -121,7 +153,7 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(nei
                     if (i /= j .and. dist <  max_distance) then
                         count = count + 1
                         ! If the atom already has the maximum number of neighbors, exit the loop.
-                        if (count > max_neighbors) then
+                        if (count > max_neighbors) then !Probably not necessary
                             exit
                         end if
                         ! Store the index of the neighboring atom.

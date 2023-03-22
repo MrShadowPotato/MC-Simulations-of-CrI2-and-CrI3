@@ -80,7 +80,7 @@ subroutine write_xyz(filename, natoms, nx, ny, comment, elements, coordinates)
         do j=1, size(elements)
             count = count + 1
             write(1, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
+            !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
         end do
     end do
     close(1)
@@ -146,7 +146,8 @@ function generate_structure(basis, primitive, nx, ny) result(structure)
         do j = 1, ny
             do k = 1, size(basis,1)
                 count = count + 1
-                structure(count,:) = basis(k,:) + primitive(1,:)*nx + primitive(2,:)*ny
+                structure(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
+                !print  *, count, structure(count,:)
             end do
         end do
     end do

@@ -4,7 +4,7 @@ program structuresCrI3
 
     ! Define variables.
     integer :: natoms, i, j, k, l, m, n, count, n1, n2, nx, ny
-    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors
+    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors, spins
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
@@ -56,17 +56,26 @@ program structuresCrI3
 
     coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
     !print *, coordinates
-    call write_structures('structures/CrI3.xyz', 'spins.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
+    call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
 
     ! Now that we have created the files containing the coordinates,
     ! we can use them to create the array that will hold the neighbords for each Cr atom.
-    Cr_coordinates =  xyz_to_array('spins.xyz')
+    Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
-    open(1, file='neighbor_test.txt', status='unknown')
+    open(1, file='CrI3neighbors.txt', status='unknown')
     do i = 1, nx*ny*2 !cambiar a variable
-        write(1,*) i, neighbors(i,1), neighbors(i,2), neighbors(i,3)
+        write(1,*) neighbors(i,1), neighbors(i,2), neighbors(i,3)
     end do
     close(1)
+    write(*,*) 'Now we generate the spins'
+    spins = generate_spins(natoms)
+    !do i = 1, natoms
+    !    write(*,'(4(F16.10))') spins(i,1), spins(i,2), spins(i,3), NORM2(spins(i,:))
+    !end do
+    
+
+
+    !write(*,'(3(F16.10))') spins(1,1), spins(1,2), spins(1,3)
 
 
 contains 
@@ -186,6 +195,30 @@ function generate_structure(basis, primitive, nx, ny) result(coordinates)
     end do
 end function generate_structure
 
+
+function generate_spins(natoms) result(spins)
+    integer, intent(in) :: natoms
+    real(8), dimension(natoms,3):: spins
+    integer :: choice, i
+    real(8), dimension(3) :: spin
+
+    write(*,*) "Choose an option: (1) ramdom directions or (2) fixed direction"
+    read(*,*) choice
+    if (choice == 1) then
+        do i = 1, natoms
+            call random_number(spin)
+            spins(i,:) = spin / sqrt(dot_product(spin, spin))
+        end do
+    else if (choice ==2) then
+        call random_number(spin)
+        spin = spin / sqrt(dot_product(spin, spin))
+        spins(:,1) = spin(1)
+        spins(:,2) = spin(2)
+        spins(:,3) = spin(3)
+        !spins = spins / sqrt(dot_product(spin, spin))
+    end if
+
+end function generate_spins
 
 
 end program structuresCrI3

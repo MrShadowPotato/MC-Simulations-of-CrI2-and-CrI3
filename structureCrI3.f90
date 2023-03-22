@@ -59,7 +59,7 @@ program structuresCrI3
     call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
 
     ! Now that we have created the files containing the coordinates,
-    ! we can use them to create the array that will hold the neighbords for each Cr atom.
+    ! we can use them to create the array that will hold the neighbors for each Cr atom.
     Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
     open(1, file='CrI3neighbors.txt', status='unknown')
@@ -189,7 +189,6 @@ function generate_structure(basis, primitive, nx, ny) result(coordinates)
             do k = 1, size(basis,1)
                 count = count + 1
                 coordinates(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
-                !print  *, count, coordinates(count,:)
             end do
         end do
     end do
@@ -215,10 +214,28 @@ function generate_spins(natoms) result(spins)
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
         spins(:,3) = spin(3)
-        !spins = spins / sqrt(dot_product(spin, spin))
     end if
 
 end function generate_spins
 
+function calculate_energy(natoms, spins, neighbors, J) result(energy)
+    implicit none
+    integer, intent(in) :: natoms
+    real(8), intent(in) :: spins(:,:) 
+    integer, intent(in), dimension(:,:) :: neighbors
+    real(8), intent(in):: J
+    real(8) :: energy
+    integer :: i, k, number_neighbors
+    number_neighbors = size(neighbors,2)
+    energy = 0.0d0
+    do i = 1, natoms
+        do k = 1, number_neighbors
+            energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check wether the sign is correct!!!!!!!!!!!!!!!!
+        end do
+    end do
+    energy = energy/2 ! Each interaction is counted twice
+end function calculate_energy
 
+!subroutine simulation(mcs, natoms, t, J, h, )
+!end subroutine simulation
 end program structuresCrI3

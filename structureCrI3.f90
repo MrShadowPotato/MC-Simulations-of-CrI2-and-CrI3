@@ -252,10 +252,12 @@ function accept_change(old_E, new_E, t) result(accept)
     end if
 end function accept_change
 
+
+! This function flips a random spin in the system.
 function flip_spin(spins) result(new_spins)
     real(8), dimension(:,:), intent(inout) :: spins                                                        
     real(8), dimension(size(spins,1),3) :: new_spins
-    integer :: i, k, index
+    integer :: index
     real(8), dimension(3) :: spin
     new_spins = spins
     index = random_integer(1, size(spins,1))
@@ -263,24 +265,42 @@ function flip_spin(spins) result(new_spins)
     new_spins(index,:) = spin / sqrt(dot_product(spin, spin))
 end function flip_spin
 
+
+! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
 subroutine simulation(mcs, natoms, T, J, H, spins, neighbors) 
     implicit none
+
+    !Declare input variables
     integer, intent(in) :: mcs, natoms
     real(8), intent(in) :: T, J, H
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
+
+    !Declare local variables
     integer :: i, k
     real(8), dimension(natoms, 3) :: old_system, new_system
     real(8) :: old_E, new_E, total_E
     
+
+    !Loop over the number of Monte Carlo steps
     do i = 1, mcs
+
+        !Loop over the number of atoms
         do k = 1, natoms
+
+            !Store the old system and generate a new one with one spin flipped
             old_system = spins
             new_system = flip_spin(spins)
+
+            !Calculate the energy of the old and new system
             old_E = calculate_energy(natoms, old_system, neighbors, J)
             new_E = calculate_energy(natoms, new_system, neighbors, J)
+
+            !Decide wheter to accept the new system or not
             if (accept_change(old_E, new_E, T)) then
+                !If the new system is accepted, update the spins and the total energy
                 spins = new_system
+            !Record the total energy
             total_E = total_E + old_E !Maybe it should be new_E
             end if
         end do

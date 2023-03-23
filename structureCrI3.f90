@@ -69,6 +69,7 @@ program structuresCrI3
     close(1)
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(natoms)
+    call simulation(100, natoms, 100d0, 2.7D-3, 0.0d0, spins, int(neighbors))
     !do i = 1, natoms
     !    write(*,'(4(F16.10))') spins(i,1), spins(i,2), spins(i,3), NORM2(spins(i,:))
     !end do
@@ -166,7 +167,7 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(nei
                             exit
                         end if
                         ! Store the index of the neighboring atom.
-                        neighbors(i,count) = j
+                        neighbors(i, count) = int(j)
                     end if
                 end do
             end do
@@ -230,12 +231,70 @@ function calculate_energy(natoms, spins, neighbors, J) result(energy)
     energy = 0.0d0
     do i = 1, natoms
         do k = 1, number_neighbors
-            energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check wether the sign is correct!!!!!!!!!!!!!!!!
+            energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check whether the sign is correct!!!!!!!!!!!!!!!!
         end do
     end do
     energy = energy/2 ! Each interaction is counted twice
 end function calculate_energy
 
-!subroutine simulation(mcs, natoms, t, J, h, )
-!end subroutine simulation
+function accept_change(old_E, new_E, t) result(accept)
+    implicit none
+    real(8), intent(in) :: old_E, new_E, t
+    real(8) :: delta_E
+    logical :: accept
+    real(8), parameter :: kB = 8.617333262E-10 
+
+    delta_E = new_E - old_E
+    if (delta_E < 0.0d0) then
+        accept = .true.
+    else
+        accept = exp(-delta_E / (kB * t)) > rand()
+    end if
+end function accept_change
+
+function flip_spin(spins) result(new_spins)
+    real(8), dimension(:,:), intent(inout) :: spins                                                        
+    real(8), dimension(size(spins,1),3) :: new_spins
+    integer :: i, k, index
+    real(8), dimension(3) :: spin
+    new_spins = spins
+    index = random_integer(1, size(spins,1))
+    call random_number(spin)
+    new_spins(index,:) = spin / sqrt(dot_product(spin, spin))
+end function flip_spin
+
+subroutine simulation(mcs, natoms, T, J, H, spins, neighbors) 
+    implicit none
+    integer, intent(in) :: mcs, natoms
+    real(8), intent(in) :: T, J, H
+    real(8), intent(inout) :: spins(:,:)
+    integer, intent(in), dimension(:,:) :: neighbors
+    integer :: i, k
+    real(8), dimension(natoms, 3) :: old_system, new_system
+    real(8) :: old_E, new_E, total_E
+    
+    do i = 1, mcs
+        do k = 1, natoms
+            old_system = spins
+            new_system = flip_spin(spins)
+            old_E = calculate_energy(natoms, old_system, neighbors, J)
+            new_E = calculate_energy(natoms, new_system, neighbors, J)
+            if (accept_change(old_E, new_E, T)) then
+                spins = new_system
+            total_E = total_E + old_E !Maybe it should be new_E
+            end if
+        end do
+    end do
+end subroutine simulation
+
+function random_integer(a, b) result(rand_int)
+    integer, intent(in) :: a, b
+    integer :: rand_int
+    real :: rand_real
+    ! Generate a random real number between 0 and 1 using RANDOM_NUMBER
+    call RANDOM_NUMBER(rand_real)
+    ! Scale the random number to be between a and b
+    rand_int = a + int(real(b - a + 1) * rand_real)
+end function random_integer
+
 end program structuresCrI3

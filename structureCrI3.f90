@@ -69,7 +69,7 @@ program structuresCrI3
     close(1)
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(natoms)
-    call simulation(100, natoms, 100d0, 2.7D-3, 0.0d0, spins, int(neighbors))
+    call simulation(100, nx*ny*2, 100d0, 2.7D-3, 0.0d0, spins, int(neighbors))
     !do i = 1, natoms
     !    write(*,'(4(F16.10))') spins(i,1), spins(i,2), spins(i,3), NORM2(spins(i,:))
     !end do
@@ -219,9 +219,8 @@ function generate_spins(natoms) result(spins)
 
 end function generate_spins
 
-function calculate_energy(natoms, spins, neighbors, J) result(energy)
+function calculate_energy(spins, neighbors, J) result(energy)
     implicit none
-    integer, intent(in) :: natoms
     real(8), intent(in) :: spins(:,:) 
     integer, intent(in), dimension(:,:) :: neighbors
     real(8), intent(in):: J
@@ -229,12 +228,15 @@ function calculate_energy(natoms, spins, neighbors, J) result(energy)
     integer :: i, k, number_neighbors
     number_neighbors = size(neighbors,2)
     energy = 0.0d0
-    do i = 1, natoms
+    do i = 1, size(spins,1)
+        !print *, i
         do k = 1, number_neighbors
             energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check whether the sign is correct!!!!!!!!!!!!!!!!
+            !print *, k
         end do
     end do
     energy = energy/2 ! Each interaction is counted twice
+    !print *, energy
 end function calculate_energy
 
 function accept_change(old_E, new_E, t) result(accept)
@@ -284,7 +286,7 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
 
     !Loop over the number of Monte Carlo steps
     do i = 1, mcs
-
+        print *, 'Mcs: ', i
         !Loop over the number of atoms
         do k = 1, natoms
 
@@ -293,8 +295,8 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
             new_system = flip_spin(spins)
 
             !Calculate the energy of the old and new system
-            old_E = calculate_energy(natoms, old_system, neighbors, J)
-            new_E = calculate_energy(natoms, new_system, neighbors, J)
+            old_E = calculate_energy(old_system, neighbors, J)
+            new_E = calculate_energy(new_system, neighbors, J)
 
             !Decide wheter to accept the new system or not
             if (accept_change(old_E, new_E, T)) then

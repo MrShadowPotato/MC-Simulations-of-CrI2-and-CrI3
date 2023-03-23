@@ -118,7 +118,7 @@ function xyz_to_array(file) result(coordinates)
     character(len=*), intent(in) :: file
     integer :: natoms
     real(8), dimension(:,:), allocatable :: coordinates
-    integer :: i, j
+    integer :: i
     character(len=2) :: element
     open(1, file=file, status='old')
     read(1,*) natoms

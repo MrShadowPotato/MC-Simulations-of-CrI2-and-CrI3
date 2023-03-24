@@ -3,3 +3,4 @@ structures/
 executable/
 *.txt
 *.xyz
+.vscode/

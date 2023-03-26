@@ -1,4 +1,4 @@
-# Ignore object fisles and executables
+# Ignore object files and executables
 *.o
 *.mod
 *.exe

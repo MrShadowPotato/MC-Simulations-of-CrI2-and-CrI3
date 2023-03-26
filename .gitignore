@@ -1,3 +1,10 @@
+# Ignore object fisles and executables
+*.o
+*.mod
+*.exe
+*.out
+
+
 x*
 structures/
 executable/

@@ -1,4 +1,4 @@
-program structuresCrI3
+program main
     implicit none
 
 
@@ -320,4 +320,4 @@ function random_integer(a, b) result(rand_int)
     rand_int = a + int(real(b - a + 1) * rand_real)
 end function random_integer
 
-end program structuresCrI3
+end program main

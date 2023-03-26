@@ -64,7 +64,7 @@ program main
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
     open(1, file='CrI3neighbors.txt', status='unknown')
     do i = 1, nx*ny*2 !cambiar a variable
-        write(1,*) neighbors(i,1), neighbors(i,2), neighbors(i,3)
+        write(1,'(3(I7))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
     end do
     close(1)
     write(*,*) 'Now we generate the spins'

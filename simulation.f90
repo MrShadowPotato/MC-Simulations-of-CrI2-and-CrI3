@@ -5,7 +5,7 @@ program main
 
 
     ! Define variables.
-    integer :: natoms, i, j, k, l, m, n, count, n1, n2, nx, ny
+    integer :: natoms, i
     real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors, spins
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
@@ -38,11 +38,11 @@ program main
     basis_CrI2(6,:) = [0.00000000000000, 4.11332427420235, 14.02184874359694]  !I
 
 
-    write(*,*) 'This program generates the structures of CrI3.'
-    write(*,*) 'Please provide the number of unit cells for the x direction:'
-    read(5,*) nx
-    write(*,*) 'Please provide the number of unit cells for the y direction:'
-    read(5,*) ny
+    !write(*,*) 'This program generates the structures of CrI3.'
+    !write(*,*) 'Please provide the number of unit cells for the x direction:'
+    !read(5,*) nx
+    !write(*,*) 'Please provide the number of unit cells for the y direction:'
+    !read(5,*) ny
 
 
 
@@ -70,8 +70,10 @@ program main
     end do
     close(1)
     write(*,*) 'Now we generate the spins'
-    spins = generate_spins(natoms)
-    call simulation(1000, nx*ny*2, 100d0, 2.7D-3, 0.0d0, spins, int(neighbors))
+    spins = generate_spins(nx*ny*2)
+    !(mcs, natoms, T, J, H, spins, neighbors) 
+    
+    call simulation(mcs, nx*ny*2, temperature, exchange, 0.0d0, spins, int(neighbors))
     print *, 'This is a mesagge to check that the program has finished.'
 
 
@@ -125,6 +127,32 @@ function xyz_to_array(file) result(coordinates)
     end do
     close(1)
 end function xyz_to_array
+
+subroutine write_system_var(energies,  magnetizations)
+    implicit none
+    real(8), dimension(:), intent(in) :: energies, magnetizations
+    integer :: i
+    open(1, file='data.txt', status='unknown')
+    do i = 1, size(energies)
+        write(1, '(2(F16.9))') energies(i), magnetizations(i)
+    end do
+    close(1)
+    end subroutine write_system_var
+
+function calculate_magnetization(spins) result(magnetization)
+    !Check logic of this function.
+    implicit none
+    real(8), dimension(:,:), intent(in) :: spins
+    real(8), dimension(3) :: magnetization_vector
+    real(8) :: magnetization
+    integer :: i
+    magnetization_vector = 0.0d0
+    do i = 1, size(spins,1)
+        magnetization_vector = magnetization_vector + spins(i,:)
+    end do
+    magnetization_vector =  magnetization_vector / size(spins,1)
+    magnetization = sqrt(dot_product(magnetization_vector, magnetization_vector))
+    end function calculate_magnetization
 
 ! This function calculates the Euclidean distance between two points (v1 and v2).
 function distance(v1, v2) result(dist)
@@ -218,7 +246,6 @@ function generate_spins(natoms) result(spins)
         spins(:,2) = spin(2)
         spins(:,3) = spin(3)
     end if
-
 end function generate_spins
 
 function calculate_energy(spins, neighbors, J) result(energy)
@@ -227,14 +254,11 @@ function calculate_energy(spins, neighbors, J) result(energy)
     integer, intent(in), dimension(:,:) :: neighbors
     real(8), intent(in):: J
     real(8) :: energy
-    integer :: i, k, number_neighbors
-    number_neighbors = size(neighbors,2)
+    integer :: i, k
     energy = 0.0d0
     do i = 1, size(spins,1)
-        !print *, i
-        do k = 1, number_neighbors
+        do k = 1, size(neighbors,2)
             energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check whether the sign is correct!!!!!!!!!!!!!!!!
-            !print *, k
         end do
     end do
     energy = energy/2 ! Each interaction is counted twice
@@ -246,7 +270,7 @@ function accept_change(old_E, new_E, t) result(accept)
     real(8), intent(in) :: old_E, new_E, t
     real(8) :: delta_E
     logical :: accept
-    real(8), parameter :: kB = 8.617333262E-10 
+    !real(8), parameter :: kB = 8.617333262E-10 
 
     delta_E = new_E - old_E
     if (delta_E < 0.0d0) then
@@ -286,33 +310,54 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
     !Declare local variables
     integer :: i, k
     real(8), dimension(natoms, 3) :: old_system, new_system
-    real(8) :: old_E, new_E, total_E
-    
+    real(8) :: old_E, new_E, total_E, old_magnetization
+    real(8), dimension(mcs) :: energies, magnetizations
 
+
+    open(12, file='data.txt', status='unknown')
+    write(12,*) 'Mcs', 'Energy', 'Magnetization'
+    write(12,*) '-----------------------------'
+    !close(12)
+    !stop
     !Loop over the number of Monte Carlo steps
     do i = 1, mcs
         print *, 'Mcs: ', i
-        !print *, seed
         !Loop over the number of atoms
         do k = 1, natoms
 
             !Store the old system and generate a new one with one spin flipped
             old_system = spins
             new_system = flip_spin(spins)
-
+            
             !Calculate the energy of the old and new system
             old_E = calculate_energy(old_system, neighbors, J)
             new_E = calculate_energy(new_system, neighbors, J)
-
+            old_magnetization = calculate_magnetization(spins)
+            
             !Decide wheter to accept the new system or not
             if (accept_change(old_E, new_E, T)) then
                 !If the new system is accepted, update the spins and the total energy
                 spins = new_system
+            end if
             !Record the total energy
-            total_E = total_E + old_E !Maybe it should be new_E
+            !total_E = total_E + old_E !Maybe it should be new_E
+            if (k == natoms - 1) then
+                print *, 'k = ', k
             end if
         end do
+        !energies(i) = old_E
+        !magnetizations(i) = old_magnetization
+        write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
+        !write(6, *) i, old_E, old_magnetization
+
+        !stop
+        if ((i == mcs - 1).and.(k == natoms - 1)) then 
+            print *, 'i =', mcs - 1
+        end if
     end do
+    close(12)
+    !call write_system_var(energies, magnetizations)
+
     print *, 'Avg energy: ', total_E/mcs
 end subroutine simulation
 
@@ -355,6 +400,8 @@ DOUBLE PRECISION FUNCTION ran2(idum)
   if (iy < 0) iy=iy+IM
   ran2=am*ior(iand(IM,ieor(ix,iy)),1)  !Combine the two generators with masking 
 END FUNCTION ran2                      !to ensure nonzero value.
+
+
 
 
 end program main

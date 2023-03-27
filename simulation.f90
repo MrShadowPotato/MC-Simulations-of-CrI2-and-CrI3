@@ -1,5 +1,7 @@
 program main
+    use variables 
     implicit none
+    
 
 
     ! Define variables.
@@ -64,20 +66,13 @@ program main
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
     open(1, file='CrI3neighbors.txt', status='unknown')
     do i = 1, nx*ny*2 !cambiar a variable
-        write(1,'(3(I7))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
+        write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
     end do
     close(1)
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(natoms)
     call simulation(1000, nx*ny*2, 100d0, 2.7D-3, 0.0d0, spins, int(neighbors))
-    print *, 'Hello'
-    !do i = 1, natoms
-    !    write(*,'(4(F16.10))') spins(i,1), spins(i,2), spins(i,3), NORM2(spins(i,:))
-    !end do
-    
-
-
-    !write(*,'(3(F16.10))') spins(1,1), spins(1,2), spins(1,3)
+    print *, 'This is a mesagge to check that the program has finished.'
 
 
 contains 
@@ -207,11 +202,17 @@ function generate_spins(natoms) result(spins)
     read(*,*) choice
     if (choice == 1) then
         do i = 1, natoms
-            call random_number(spin)
+            !call random_number(spin)
+            spin(1) = ran2(seed)
+            spin(2) = ran2(seed)
+            spin(3) = ran2(seed)
             spins(i,:) = spin / sqrt(dot_product(spin, spin))
         end do
     else if (choice ==2) then
-        call random_number(spin)
+        !call random_number(spin)
+        spin(1) = ran2(seed)
+        spin(2) = ran2(seed)
+        spin(3) = ran2(seed)
         spin = spin / sqrt(dot_product(spin, spin))
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
@@ -251,7 +252,7 @@ function accept_change(old_E, new_E, t) result(accept)
     if (delta_E < 0.0d0) then
         accept = .true.
     else
-        accept = exp(-delta_E / (kB * t)) > rand()
+        accept = exp(-delta_E / (kB * t)) > ran2(seed)
     end if
 end function accept_change
 
@@ -264,7 +265,10 @@ function flip_spin(spins) result(new_spins)
     real(8), dimension(3) :: spin
     new_spins = spins
     index = random_integer(1, size(spins,1))
-    call random_number(spin)
+    !call random_number(spin)
+    spin(1) = ran2(seed)
+    spin(2) = ran2(seed)
+    spin(3) = ran2(seed)    
     new_spins(index,:) = spin / sqrt(dot_product(spin, spin))
 end function flip_spin
 
@@ -288,6 +292,7 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
     !Loop over the number of Monte Carlo steps
     do i = 1, mcs
         print *, 'Mcs: ', i
+        !print *, seed
         !Loop over the number of atoms
         do k = 1, natoms
 
@@ -308,6 +313,7 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
             end if
         end do
     end do
+    print *, 'Avg energy: ', total_E/mcs
 end subroutine simulation
 
 function random_integer(a, b) result(rand_int)
@@ -315,7 +321,8 @@ function random_integer(a, b) result(rand_int)
     integer :: rand_int
     real :: rand_real
     ! Generate a random real number between 0 and 1 using RANDOM_NUMBER
-    call RANDOM_NUMBER(rand_real)
+    !call RANDOM_NUMBER(rand_real)
+    rand_real = ran2(seed)
     ! Scale the random number to be between a and b
     rand_int = a + int(real(b - a + 1) * rand_real)
 end function random_integer

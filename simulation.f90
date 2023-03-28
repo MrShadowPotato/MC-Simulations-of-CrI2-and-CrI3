@@ -128,17 +128,6 @@ function xyz_to_array(file) result(coordinates)
     close(1)
 end function xyz_to_array
 
-subroutine write_system_var(energies,  magnetizations)
-    implicit none
-    real(8), dimension(:), intent(in) :: energies, magnetizations
-    integer :: i
-    open(1, file='data.txt', status='unknown')
-    do i = 1, size(energies)
-        write(1, '(2(F16.9))') energies(i), magnetizations(i)
-    end do
-    close(1)
-    end subroutine write_system_var
-
 function calculate_magnetization(spins) result(magnetization)
     !Check logic of this function.
     implicit none
@@ -270,8 +259,6 @@ function accept_change(old_E, new_E, t) result(accept)
     real(8), intent(in) :: old_E, new_E, t
     real(8) :: delta_E
     logical :: accept
-    !real(8), parameter :: kB = 8.617333262E-10 
-
     delta_E = new_E - old_E
     if (delta_E < 0.0d0) then
         accept = .true.
@@ -311,7 +298,6 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
     integer :: i, k
     real(8), dimension(natoms, 3) :: old_system, new_system
     real(8) :: old_E, new_E, total_E, old_magnetization
-    real(8), dimension(mcs) :: energies, magnetizations
 
 
     open(12, file='data.txt', status='unknown')
@@ -339,24 +325,10 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
                 !If the new system is accepted, update the spins and the total energy
                 spins = new_system
             end if
-            !Record the total energy
-            !total_E = total_E + old_E !Maybe it should be new_E
-            if (k == natoms - 1) then
-                print *, 'k = ', k
-            end if
         end do
-        !energies(i) = old_E
-        !magnetizations(i) = old_magnetization
         write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
-        !write(6, *) i, old_E, old_magnetization
-
-        !stop
-        if ((i == mcs - 1).and.(k == natoms - 1)) then 
-            print *, 'i =', mcs - 1
-        end if
     end do
     close(12)
-    !call write_system_var(energies, magnetizations)
 
     print *, 'Avg energy: ', total_E/mcs
 end subroutine simulation

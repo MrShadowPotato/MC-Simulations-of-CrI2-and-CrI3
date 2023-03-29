@@ -6,13 +6,15 @@ program main
 
     ! Define variables.
     integer :: natoms, i
+    real :: start_time, end_time, elapsed_time
+
     real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors, spins
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
-
+    
     ! Define the primiteve vectors for the CrI3 structure.
     primitiveCrI3(1, :) = [6.8911914825, 0.0, 0.0]
     primitiveCrI3(2, :) = [-3.4488059462999998, 5.9711638719, 0.0]
@@ -55,6 +57,7 @@ program main
 
     ! Calculate the number of atoms in the structure.
     natoms = nx*ny*8
+    call cpu_time(start_time)
 
     coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
     !print *, coordinates
@@ -73,10 +76,18 @@ program main
     spins = generate_spins(nx*ny*2)
     !(mcs, natoms, T, J, H, spins, neighbors) 
     
-    call simulation(mcs, nx*ny*2, temperature, exchange, 0.0d0, spins, int(neighbors))
+    call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, int(neighbors))
     print *, 'This is a mesagge to check that the program has finished.'
 
+    call cpu_time(end_time)
 
+    open(unit=14, file='data.txt', status="old", position='append', action="write")
+    !do i = 1, 3 
+    !    read(14, *)
+    !end do
+    write(14, *) 'This is the time it took to run the program: ', end_time - start_time
+    close(14)
+    write(6, *) 'This is the time it took to run the program: ', end_time - start_time
 contains 
 
 ! This subroutine writes the coordinates to a xyz file.
@@ -100,6 +111,7 @@ subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coo
     do i=1, ncells
         do j=1, size(elements)
             count = count + 1
+            write(6, *) 'Atoms = ', count
             if ( elements(j) =='Cr' ) then
                 write(2, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
             end if
@@ -285,31 +297,32 @@ end function flip_spin
 
 
 ! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
-subroutine simulation(mcs, natoms, T, J, H, spins, neighbors) 
+subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors) 
     implicit none
 
     !Declare input variables
-    integer, intent(in) :: mcs, natoms
+    integer, intent(in) :: mcs, CrAtoms, nx, ny
     real(8), intent(in) :: T, J, H
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
 
     !Declare local variables
     integer :: i, k
-    real(8), dimension(natoms, 3) :: old_system, new_system
-    real(8) :: old_E, new_E, total_E, old_magnetization
+    real(8), dimension(CrAtoms, 3) :: old_system, new_system
+    real(8) :: old_E, new_E, old_magnetization
 
 
     open(12, file='data.txt', status='unknown')
+    write(12,*) 'seed - mcs - temperature - CrAtoms - nx - ny - H'
+    write(12,*) seed, mcs, T, CrAtoms, nx, ny, H
     write(12,*) 'Mcs', 'Energy', 'Magnetization'
-    write(12,*) '-----------------------------'
     !close(12)
     !stop
     !Loop over the number of Monte Carlo steps
     do i = 1, mcs
         print *, 'Mcs: ', i
         !Loop over the number of atoms
-        do k = 1, natoms
+        do k = 1, CrAtoms
 
             !Store the old system and generate a new one with one spin flipped
             old_system = spins
@@ -330,7 +343,7 @@ subroutine simulation(mcs, natoms, T, J, H, spins, neighbors)
     end do
     close(12)
 
-    print *, 'Avg energy: ', total_E/mcs
+    print *, 'End of the simulation'
 end subroutine simulation
 
 function random_integer(a, b) result(rand_int)

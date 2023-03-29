@@ -8,6 +8,7 @@
 x*
 structures/
 executable/
+graphs/
 *.txt
 *.xyz
 .vscode/

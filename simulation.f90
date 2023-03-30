@@ -67,27 +67,26 @@ program main
     ! we can use them to create the array that will hold the neighbors for each Cr atom.
     Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
-    open(1, file='CrI3neighbors.txt', status='unknown')
-    do i = 1, nx*ny*2 !cambiar a variable
-        write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    end do
-    close(1)
+    !open(1, file='CrI3neighbors.txt', status='unknown')
+    !do i = 1, nx*ny*2 !cambiar a variable
+    !    write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
+    !end do
+    !close(1)
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(nx*ny*2)
-    !(mcs, natoms, T, J, H, spins, neighbors) 
+
+    !(mcs, cratoms, nx, ny, T, J, H, spins, neighbors) 
     
     call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, int(neighbors))
     print *, 'This is a mesagge to check that the program has finished.'
 
     call cpu_time(end_time)
+    elapsed_time = end_time - start_time
 
     open(unit=14, file='data.txt', status="old", position='append', action="write")
-    !do i = 1, 3 
-    !    read(14, *)
-    !end do
-    write(14, *) 'This is the time it took to run the program: ', end_time - start_time
+    write(14, *) 'This is the time it took to run the program: ', elapsed_time
     close(14)
-    write(6, *) 'This is the time it took to run the program: ', end_time - start_time
+    write(6, *) 'This is the time it took to run the program: ', elapsed_time
 contains 
 
 ! This subroutine writes the coordinates to a xyz file.
@@ -113,9 +112,9 @@ subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coo
             count = count + 1
             write(6, *) 'Atoms = ', count
             if ( elements(j) =='Cr' ) then
-                write(2, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
+                write(2, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
             end if
-            write(1, '(A2, 3(F16.10))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
+            write(1, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
             !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
         end do
     end do
@@ -175,7 +174,7 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(nei
     integer, dimension(size(vectors,1), max_neighbors) :: neighbors
     real(8) :: dist ! Distance between two atoms
     n = size(vectors,1)
-    
+    open(15, file='CrI3neighbors.txt', status='unknown')
     ! Loop through all atoms and find their neighbors within the specified distance.
     do i = 1, n
         count = 0
@@ -197,7 +196,11 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(nei
                 end do
             end do
         end do
+        ! Print the neighbors of the atom to a file.
+        write(15,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
+        write(6, *) 'Neighbors of atom ', i, ' are ', int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
     end do
+    close(15)
 end function find_neighbors
 
 ! This function generates the coordinates of the atoms in the structure.
@@ -232,16 +235,17 @@ function generate_spins(natoms) result(spins)
     if (choice == 1) then
         do i = 1, natoms
             !call random_number(spin)
-            spin(1) = ran2(seed)
-            spin(2) = ran2(seed)
-            spin(3) = ran2(seed)
+            spin(1) = 2*ran2(seed)-1
+            spin(2) = 2*ran2(seed)-1
+            spin(3) = 2*ran2(seed)-1
             spins(i,:) = spin / sqrt(dot_product(spin, spin))
         end do
+
     else if (choice ==2) then
         !call random_number(spin)
-        spin(1) = ran2(seed)
-        spin(2) = ran2(seed)
-        spin(3) = ran2(seed)
+        spin(1) = 2*ran2(seed)-1
+        spin(2) = 2*ran2(seed)-1
+        spin(3) = 2*ran2(seed)-1
         spin = spin / sqrt(dot_product(spin, spin))
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
@@ -289,9 +293,9 @@ function flip_spin(spins) result(new_spins)
     new_spins = spins
     index = random_integer(1, size(spins,1))
     !call random_number(spin)
-    spin(1) = ran2(seed)
-    spin(2) = ran2(seed)
-    spin(3) = ran2(seed)    
+    spin(1) = 2*ran2(seed)-1
+    spin(2) = 2*ran2(seed)-1
+    spin(3) = 2*ran2(seed)-1    
     new_spins(index,:) = spin / sqrt(dot_product(spin, spin))
 end function flip_spin
 
@@ -313,9 +317,9 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
 
 
     open(12, file='data.txt', status='unknown')
-    write(12,*) 'seed - mcs - temperature - CrAtoms - nx - ny - H'
-    write(12,*) seed, mcs, T, CrAtoms, nx, ny, H
-    write(12,*) 'Mcs', 'Energy', 'Magnetization'
+    write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
+    write(12,*) '#',seed, mcs, T, CrAtoms, nx, ny, H
+    write(12,*) '#Mcs', 'Energy', 'Magnetization'
     !close(12)
     !stop
     !Loop over the number of Monte Carlo steps
@@ -338,8 +342,11 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
                 !If the new system is accepted, update the spins and the total energy
                 spins = new_system
             end if
+            if (k == 1) then 
+                write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
+            end if
         end do
-        write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
+        !write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
     end do
     close(12)
 

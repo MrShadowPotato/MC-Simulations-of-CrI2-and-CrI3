@@ -67,11 +67,7 @@ program main
     ! we can use them to create the array that will hold the neighbors for each Cr atom.
     Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
     neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
-    !open(1, file='CrI3neighbors.txt', status='unknown')
-    !do i = 1, nx*ny*2 !cambiar a variable
-    !    write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    !end do
-    !close(1)
+
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(nx*ny*2)
 

@@ -83,7 +83,7 @@ program main
     call cpu_time(end_time)
     elapsed_time = end_time - start_time
 
-    open(unit=14, file='data.txt', status="old", position='append', action="write")
+    open(unit=14, file='data_temp.txt', status="old", position='append', action="write")
     write(14, *) 'This is the time it took to run the program: ', elapsed_time
     close(14)
     write(6, *) 'This is the time it took to run the program: ', elapsed_time
@@ -154,7 +154,8 @@ function calculate_magnetization(spins) result(magnetization)
     magnetization = sqrt(dot_product(magnetization_vector, magnetization_vector))
     end function calculate_magnetization
 
-! This function calculates the Euclidean distance between two points (v1 and v2).
+    
+    ! This function calculates the Euclidean distance between two points (v1 and v2).
 function distance(v1, v2) result(dist)
     implicit none
     real(8), dimension(:), intent(in) :: v1, v2
@@ -163,7 +164,7 @@ function distance(v1, v2) result(dist)
     dist = sqrt(dot_product(v1-v2, v1-v2))
 end function distance
 
-    ! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
+! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
 function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(neighbors)
     implicit none
     real(8), dimension(:,:), intent(in) :: vectors
@@ -229,29 +230,25 @@ function generate_spins(natoms) result(spins)
     real(8), dimension(natoms,3):: spins
     integer :: choice, i
     real(8), dimension(3) :: spin
-
+    
     write(*,*) "Choose an option: (1) ramdom directions or (2) fixed direction"
     read(*,*) choice
+    
     if (choice == 1) then
+        !Each spin is a different randomly generated normal vector.
         do i = 1, natoms
-            !call random_number(spin)
-            spin(1) = 2*ran2(seed)-1
-            spin(2) = 2*ran2(seed)-1
-            spin(3) = 2*ran2(seed)-1
-            spins(i,:) = spin / sqrt(dot_product(spin, spin))
+            spins(i,:) = random_normal_vector()
         end do
-
+        
     else if (choice ==2) then
-        !call random_number(spin)
-        spin(1) = 2*ran2(seed)-1
-        spin(2) = 2*ran2(seed)-1
-        spin(3) = 2*ran2(seed)-1
-        spin = spin / sqrt(dot_product(spin, spin))
+        !All the spins are the same randomly generated normal vector.
+        spin = random_normal_vector()
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
         spins(:,3) = spin(3)
     end if
 end function generate_spins
+
 
 function calculate_energy(spins, neighbors, J) result(energy)
     implicit none
@@ -271,13 +268,95 @@ function calculate_energy(spins, neighbors, J) result(energy)
 end function calculate_energy
 
 
-
-function accept_change(old_E, new_E, t) result(accept)
+function calculate_initial_energy(spins, neighbors, J) result(system_energy)
     implicit none
-    real(8), intent(in) :: old_E, new_E, t
-    real(8) :: delta_E
+    real(8), intent(in) :: spins(:,:)
+    integer, intent(in), dimension(:,:) :: neighbors
+    real(8), intent(in) :: J
+    real(8) :: system_energy
+    integer :: i, k
+    system_energy = 0.0d0
+    do i = 1, size(spins,1)
+        do k = 1, size(neighbors,2)
+            system_energy = system_energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:))
+        end do
+    end do
+    system_energy = system_energy/2 ! Each interaction is counted twice
+end function calculate_initial_energy
+
+
+function calculate_initial_magnetization_vector(spins) result(magnetization)
+    implicit none
+    real(8), intent(in) :: spins(:,:)
+    real(8), dimension(3) :: magnetization_vector
+    real(8) :: magnetization
+    integer :: i
+    magnetization_vector = 0.0d0
+    do i =1, size(spins,1)
+        magnetization_vector = magnetization_vector + spins(i,3)
+    end do 
+    magnetization_vector = magnetization_vector / size(spins,1)
+    end function calculate_initial_magnetization_vector
+
+
+function calculate_spin_energy(spins, neighbors, index, J) result(energy)
+    real(8), intent(in) :: spins(:,:)
+    integer, intent(in), dimension(:,:) :: neighbors
+    integer, intent(in) :: index
+    real(8), intent(in) :: J
+    integer :: i
+    real(8) :: energy 
+    energy = 0.0d0 
+    do i = 1, size(neighbors,2)
+        energy = energy - 2 * J * dot_product(spins(index,:), spins(neighbors(index,i),:))
+    end do
+end function calculate_spin_energy
+
+
+function flip_ith_spin(spins, ith) result(new_spins)
+    implicit none
+    real(8), dimension(:,:), intent(inout) :: spins
+    real(8), dimension(size(spins,1),3) :: new_spins
+    integer, intent(in) :: ith
+    new_spins = spins
+    new_spins(ith,:) = random_normal_vector()
+end function flip_ith_spin
+
+
+function energy_change(old_system, new_system, neighbors, J, index) result(delta_E)
+    !Calculates the energy change due to spin flip.
+    !Compares the energy of the old system with the energy of the new system.
+    !Only the energy of the spin that has been flipped is calculated.
+    implicit none 
+    real(8), intent(in), dimension(:,:) :: old_system, new_system
+    integer, intent(in), dimension(:,:) :: neighbors
+    real(8), intent(in) :: J
+    integer, intent(in) :: index
+    integer :: i
+    real(8) :: original_energy, new_energy, delta_E
+    real(8) :: new_spin(3), original_spin(3)
+
+    original_energy = 0.0d0  
+    new_energy = 0.0d0
+    
+    original_spin = old_system(index,:)
+    new_spin = new_system(index,:)
+    
+    do i = 1, size(neighbors,2)
+        original_energy = original_energy - J * dot_product(original_spin, spins(neighbors(index,i),:))
+        new_energy = new_energy - J * dot_product(new_spin, spins(neighbors(index,i),:))
+    end do
+
+    delta_E = (new_energy - original_energy)
+end function energy_change
+
+ 
+
+function accept_change(delta_E, t) result(accept)
+    implicit none
+    real(8), intent(in) :: delta_E, t    
     logical :: accept
-    delta_E = new_E - old_E
+    
     if (delta_E < 0.0d0) then
         accept = .true.
     else
@@ -286,74 +365,86 @@ function accept_change(old_E, new_E, t) result(accept)
 end function accept_change
 
 
-! This function flips a random spin in the system.
-function flip_spin(spins) result(new_spins)
-    real(8), dimension(:,:), intent(inout) :: spins                                                        
-    real(8), dimension(size(spins,1),3) :: new_spins
-    integer :: index
-    real(8), dimension(3) :: spin
-    new_spins = spins
-    index = random_integer(1, size(spins,1))
-    !call random_number(spin)
-    spin(1) = 2*ran2(seed)-1
-    spin(2) = 2*ran2(seed)-1
-    spin(3) = 2*ran2(seed)-1    
-    new_spins(index,:) = spin / sqrt(dot_product(spin, spin))
-end function flip_spin
 
 
 ! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
 subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors) 
     implicit none
-
+    
     !Declare input variables
     integer, intent(in) :: mcs, CrAtoms, nx, ny
     real(8), intent(in) :: T, J, H
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
-
+    
     !Declare local variables
-    integer :: i, k
+    integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
-    real(8) :: old_E, new_E, old_magnetization
-
-
-    open(12, file='data.txt', status='unknown')
+    real(8) :: current_energy, current_magnetization, delta_E
+    real(8), dimension(3) :: current_magnetization_vector, final_magnetization_vector
+    
+    
+    open(12, file='data_temp.txt', status='unknown')
     write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
     write(12,*) '#',seed, mcs, T, CrAtoms, nx, ny, H
     write(12,*) '#Mcs', 'Energy', 'Magnetization'
     !close(12)
     !stop
     !Loop over the number of Monte Carlo steps
+    current_energy = calculate_initial_energy(spins, neighbors, J)
+    current_magnetization_vector = calculate_initial_magnetization_vector(spins)
+    current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
+
     do i = 1, mcs
         print *, 'Mcs: ', i
         !Loop over the number of atoms
         do k = 1, CrAtoms
-
+            !Generate the index of a random spin to be flipped
+            spins_index = random_integer(1, CrAtoms)
+            
+            
             !Store the old system and generate a new one with one spin flipped
             old_system = spins
-            new_system = flip_spin(spins)
+            new_system = flip_ith_spin(spins, spins_index)
             
-            !Calculate the energy of the old and new system
-            old_E = calculate_energy(old_system, neighbors, J)
-            new_E = calculate_energy(new_system, neighbors, J)
-            old_magnetization = calculate_magnetization(spins)
+            !Calculate the energy and magnetization of the old and new system
+            
+            delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
             
             !Decide wheter to accept the new system or not
-            if (accept_change(old_E, new_E, T)) then
+            if (accept_change(delta_E, T)) then
                 !If the new system is accepted, update the spins and the total energy
                 spins = new_system
+                current_energy = current_energy + delta_E
+                current_magnetization_vector = current_magnetization_vector - old_system(spins_index,:) + new_system(spins_index,:)
+                current_magnetization_vector = current_magnetization_vector/2
+                current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
+                
             end if
             if (k == 1) then 
-                write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
+                write(12, '(I7 ,2(1x, F16.9))') i, current_energy, current_magnetization
             end if
         end do
-        !write(12, '(I7 ,2(1x, F16.9))') i, old_E, old_magnetization
+
+
     end do
     close(12)
-
+    
     print *, 'End of the simulation'
 end subroutine simulation
+
+
+
+
+function random_normal_vector() result(vector)
+    implicit none
+    real(8), dimension(3) :: vector
+    vector(1) = 2*ran2(seed)-1
+    vector(2) = 2*ran2(seed)-1
+    vector(3) = 2*ran2(seed)-1
+    vector = vector / sqrt(dot_product(vector, vector))
+end function random_normal_vector
+
 
 function random_integer(a, b) result(rand_int)
     integer, intent(in) :: a, b
@@ -365,6 +456,7 @@ function random_integer(a, b) result(rand_int)
     ! Scale the random number to be between a and b
     rand_int = a + int(real(b - a + 1) * rand_real)
 end function random_integer
+
 
 DOUBLE PRECISION FUNCTION ran2(idum)
   IMPLICIT NONE

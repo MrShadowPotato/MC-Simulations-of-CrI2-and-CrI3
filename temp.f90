@@ -285,17 +285,16 @@ function calculate_initial_energy(spins, neighbors, J) result(system_energy)
 end function calculate_initial_energy
 
 
-function calculate_initial_magnetization_vector(spins) result(magnetization)
+function calculate_initial_magnetization_vector(spins) result(magnetization_vector)
     implicit none
     real(8), intent(in) :: spins(:,:)
     real(8), dimension(3) :: magnetization_vector
-    real(8) :: magnetization
     integer :: i
     magnetization_vector = 0.0d0
     do i =1, size(spins,1)
-        magnetization_vector = magnetization_vector + spins(i,3)
+        magnetization_vector = magnetization_vector + spins(i,:)
     end do 
-    magnetization_vector = magnetization_vector / size(spins,1)
+    !/ size(spins,1)
     end function calculate_initial_magnetization_vector
 
 
@@ -368,68 +367,93 @@ end function accept_change
 
 
 ! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
-subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors) 
+subroutine simulation(mcs, CrAtoms, nx, ny, initial_temperature, J, H, spins, neighbors) 
     implicit none
     
     !Declare input variables
     integer, intent(in) :: mcs, CrAtoms, nx, ny
-    real(8), intent(in) :: T, J, H
+    real(8), intent(in) :: initial_temperature, J, H
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
     
     !Declare local variables
     integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
-    real(8) :: current_energy, current_magnetization, delta_E
-    real(8), dimension(3) :: current_magnetization_vector, final_magnetization_vector
+    real(8) :: current_energy, current_magnetization, delta_E, T
+    real(8), dimension(3) :: current_magnetization_vector, old_spin, new_spin, spin_sum
+    real(8) :: avg_energy, avg_magnetization
     
     
     open(12, file='data_temp.txt', status='unknown')
     write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
-    write(12,*) '#',seed, mcs, T, CrAtoms, nx, ny, H
+    write(12,*) '#',seed, mcs, initial_temperature, CrAtoms, nx, ny, H
     write(12,*) '#Mcs', 'Energy', 'Magnetization'
-    !close(12)
-    !stop
-    !Loop over the number of Monte Carlo steps
+    open(13, file='variables_temp.txt', status='unknown')
+    write(13,*) '#seed - mcs - initial_temperature - CrAtoms - nx - ny - H'
+    write(13,*) '#',seed, mcs, initial_temperature, CrAtoms, nx, ny, H
+
     current_energy = calculate_initial_energy(spins, neighbors, J)
     current_magnetization_vector = calculate_initial_magnetization_vector(spins)
     current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
-
-    do i = 1, mcs
-        print *, 'Mcs: ', i
-        !Loop over the number of atoms
-        do k = 1, CrAtoms
-            !Generate the index of a random spin to be flipped
+    T = initial_temperature
+    !Lopp over the temperatures
+    do while (T < 100)
+        print*, 'Temperature: ', T
+        
+        !Loop over the number of Monte Carlo steps
+        do i = 1, mcs
+            print *, 'Mcs: ', i
+            !Loop over the number of atoms
+            do k = 1, CrAtoms
+                !Generate the index of a random spin to be flipped
+                spins_index = random_integer(1, CrAtoms)
+                
+                
+                !Store the old system and generate a new one with one spin flipped
+                old_system = spins
+                new_system = flip_ith_spin(spins, spins_index)
+                
+                !Calculate the energy and magnetization of the old and new system
+                
+                delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
+                
+                !Decide wheter to accept the new system or not
+                if (accept_change(delta_E, T)) then
+                    !If the new system is accepted, update the spins and the total energy
+                    spins = new_system
+                    current_energy = current_energy + delta_E
+                    current_magnetization_vector = current_magnetization_vector  & 
+                    - old_system(spins_index,:) + new_system(spins_index,:)
+                    current_magnetization_vector = current_magnetization_vector/size(spins,1)
+                    current_magnetization = sqrt(norm2(current_magnetization_vector))
+                    
+                end if
+                if (k == 1) then 
+                    !write(12, '(I7 ,2(1x, F16.9))') i, current_energy, current_magnetization
+                end if
+            end do
+        end do
+        close(12)
+        do i = 1, 100
             spins_index = random_integer(1, CrAtoms)
-            
-            
-            !Store the old system and generate a new one with one spin flipped
             old_system = spins
             new_system = flip_ith_spin(spins, spins_index)
-            
-            !Calculate the energy and magnetization of the old and new system
-            
             delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
-            
-            !Decide wheter to accept the new system or not
             if (accept_change(delta_E, T)) then
-                !If the new system is accepted, update the spins and the total energy
                 spins = new_system
                 current_energy = current_energy + delta_E
-                current_magnetization_vector = current_magnetization_vector - old_system(spins_index,:) + new_system(spins_index,:)
-                current_magnetization_vector = current_magnetization_vector/2
-                current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
-                
-            end if
-            if (k == 1) then 
-                write(12, '(I7 ,2(1x, F16.9))') i, current_energy, current_magnetization
+                current_magnetization_vector = current_magnetization_vector &
+                - old_system(spins_index,:) + new_system(spins_index,:)
+                current_magnetization_vector = current_magnetization_vector/size(spins,1)
+                current_magnetization = sqrt(norm2(current_magnetization_vector))
             end if
         end do
-
-
-    end do
-    close(12)
-    
+        avg_energy =  current_energy / 100
+        avg_magnetization = current_magnetization / 100
+        write(13, '(F7.2 ,2(1x, F16.9))') T, avg_energy, avg_magnetization
+        T = T + 1
+    end do  
+    close(13)
     print *, 'End of the simulation'
 end subroutine simulation
 

@@ -3,7 +3,7 @@
 *.mod
 *.exe
 *.out
-
+test*
 
 x*
 structures/

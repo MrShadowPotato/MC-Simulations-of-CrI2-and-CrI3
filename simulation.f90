@@ -1,5 +1,6 @@
 program main
     use variables 
+    !use rng
     implicit none
     
 
@@ -8,38 +9,38 @@ program main
     integer :: natoms, i
     real :: start_time, end_time, elapsed_time
 
-    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors, spins
+    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, spins
+    integer, dimension(:,:), allocatable :: neighbors
   
     call read_parameters()
     ! Calculate the number of atoms in the structure.
     natoms = nx*ny*8
     call cpu_time(start_time)
 
-    coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
-    !print *, coordinates
-    call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
+    !coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
+
+    
+    !call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
 
     ! Now that we have created the files containing the coordinates,
     ! we can use them to create the array that will hold the neighbors for each Cr atom.
-    Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
-    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
-    !open(1, file='CrI3neighbors.txt', status='unknown')
-    !do i = 1, nx*ny*2 !cambiar a variable
-    !    write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    !end do
-    !close(1)
+    !Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
+
+
+    neighbors = read_neighbors(Cr_neighbors, Cr_atoms)
+ 
     write(*,*) 'Now we generate the spins'
     spins = generate_spins(nx*ny*2)
 
-    !(mcs, cratoms, nx, ny, T, J, H, spins, neighbors) 
+
     
-    call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, int(neighbors))
+    call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, neighbors)
     print *, 'This is a mesagge to check that the program has finished.'
 
     call cpu_time(end_time)
     elapsed_time = end_time - start_time
 
-    open(unit=14, file=output_file, status="old", position='append', action="write")
+    open(unit=14, file='data/stabilizer/'//output_file, status="old", position='append', action="write")
     write(14, *) 'This is the time it took to run the program: ', elapsed_time
     close(14)
     write(6, *) 'This is the time it took to run the program: ', elapsed_time
@@ -95,20 +96,7 @@ function xyz_to_array(file) result(coordinates)
     close(1)
 end function xyz_to_array
 
-function calculate_magnetization(spins) result(magnetization)
-    !Check logic of this function.
-    implicit none
-    real(8), dimension(:,:), intent(in) :: spins
-    real(8), dimension(3) :: magnetization_vector
-    real(8) :: magnetization
-    integer :: i
-    magnetization_vector = 0.0d0
-    do i = 1, size(spins,1)
-        magnetization_vector = magnetization_vector + spins(i,:)
-    end do
-    magnetization_vector =  magnetization_vector / size(spins,1)
-    magnetization = sqrt(dot_product(magnetization_vector, magnetization_vector))
-    end function calculate_magnetization
+
 
     
     ! This function calculates the Euclidean distance between two points (v1 and v2).
@@ -119,6 +107,20 @@ function distance(v1, v2) result(dist)
     !dist = sqrt(sum((v1-v2)**2))
     dist = sqrt(dot_product(v1-v2, v1-v2))
 end function distance
+
+function read_neighbors(file, Cr_atoms)  result(neighbors)
+    implicit none
+    character(len=*), intent(in) :: file
+    integer, intent(in) :: Cr_atoms
+    integer, dimension(:,:), allocatable :: neighbors
+    integer :: i
+    open(1, file='neighbors/'//file, status='old')
+    allocate(neighbors(Cr_atoms, 3))
+    do i = 1, Cr_atoms
+            read(1, '(3(I8))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
+    end do
+end function read_neighbors
+
 
 ! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
 function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(neighbors)
@@ -320,10 +322,10 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
     integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
     real(8) :: current_energy, current_magnetization, delta_E
-    real(8), dimension(3) :: current_magnetization_vector, final_magnetization_vector
+    real(8), dimension(3) :: current_magnetization_vector
     
     
-    open(12, file=output_file, status='unknown')
+    open(12, file='data/stabilizer/'//output_file, status='unknown')
     write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
     write(12,*) '#', seed, mcs, T, CrAtoms, nx, ny, H
     write(12,*) '#Mcs', 'Energy', 'Magnetization'

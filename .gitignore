@@ -8,6 +8,8 @@ test*
 x*
 structures/
 executable/
+stabilizer_output/
+generate_output/
 graphs/
 *.txt
 *.xyz

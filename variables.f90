@@ -1,8 +1,8 @@
 module variables
     implicit none
-    character(len=100) :: dummy
-    character(len=100), public :: output_file
-    integer, public :: seed, mcs, nx, ny, spins_orientation
+    character(len=1000) :: dummy
+    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors
+    integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation
     real(8), public :: temperature 
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
@@ -29,7 +29,9 @@ contains
         read(10,*) dummy, dummy, nx
         read(10,*) dummy, dummy, ny
         read(10,*) dummy, dummy, spins_orientation
-        read(10, *) dummy, dummy, output_file
+        read(10,*) dummy, dummy, output_file
+        read(10,*) dummy, dummy, Cr_xyz
+        read(10,*) dummy, dummy, Cr_neighbors
         
         ! Close the file
         close(unit=10)
@@ -41,7 +43,11 @@ contains
         write(*,*) "nx = ", nx
         write(*,*) "ny = ", ny
         write(*,*) "spins_orientation = ", spins_orientation
+        write(*,*) "output_file = ", output_file
+        write(*,*) "Cr_xyz = ", Cr_xyz
+        write(*,*) "Cr_neighbors = ", Cr_neighbors
 
+        Cr_atoms = 2*nx*ny
 
         ! Define the primiteve vectors for the CrI3 structure.
         primitiveCrI3(1, :) = [6.8911914825, 0.0, 0.0]

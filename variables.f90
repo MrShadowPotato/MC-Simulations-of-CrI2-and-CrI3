@@ -1,9 +1,9 @@
 module variables
     implicit none
     character(len=1000) :: dummy
-    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors
-    integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation
-    real(8), public :: temperature 
+    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file
+    integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation, index_avg
+    real(8), public :: temperature, initial_temperature, final_temperature, temperature_step
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
@@ -32,6 +32,11 @@ contains
         read(10,*) dummy, dummy, output_file
         read(10,*) dummy, dummy, Cr_xyz
         read(10,*) dummy, dummy, Cr_neighbors
+        read(10,*) dummy, dummy, initial_temperature
+        read(10,*) dummy, dummy, final_temperature
+        read(10,*) dummy, dummy, temperature_step
+        read(10,*) dummy, dummy, index_avg
+        read(10,*) dummy, dummy, temp_iterator_file
         
         ! Close the file
         close(unit=10)

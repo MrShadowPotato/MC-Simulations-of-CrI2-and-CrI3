@@ -1,238 +1,64 @@
-program main
+program temperature_iterator
     use variables 
+    !use rng
     implicit none
     
 
-
-    ! Define variables.
-    integer :: natoms, i
+    ! Define local variables.
+    integer :: i
     real :: start_time, end_time, elapsed_time
+    real(8), dimension(:,:), allocatable :: spins
+    integer, dimension(:,:), allocatable :: neighbors
+  
+    !Call variables from the vairables module.
+    call read_parameters()
 
-    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, neighbors, spins
-    real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
-    real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
-    real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
-    character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
-    character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
-    
-    ! Define the primiteve vectors for the CrI3 structure.
-    primitiveCrI3(1, :) = [6.8911914825, 0.0, 0.0]
-    primitiveCrI3(2, :) = [-3.4488059462999998, 5.9711638719, 0.0]
-    ! Define the basis vectors for the CrI3 structure.
-    basis_CrI3(1,:) = [3.42245459776438, 1.94691491308500, 9.72065830568899]   !Cr
-    basis_CrI3(2,:) = [-0.02339545180016, 3.93735766285690, 9.72080135688876]  !Cr
-    basis_CrI3(3,:) = [-1.03538548904423, 5.92724513968807, 11.28527832915810] !I 
-    basis_CrI3(4,:) = [2.20273590406674, 3.81437945298318, 11.29027271402490]  !I
-    basis_CrI3(5,:) = [5.64639472731378, 2.07416105561567, 11.29166984494761]  !I
-    basis_CrI3(6,:) = [0.97989374494890, 5.92913055695139, 8.15211676904270]   !I
-    basis_CrI3(7,:) = [1.19604098486642, 2.06898570270974, 8.15546418188776]   !I
-    basis_CrI3(8,:) = [4.64469384948989, 3.81029176486010, 8.15107346274473]   !I
-    
-    ! Define the primitive vectors for the CrI2 structure.
-    primitiveCrI2(1, :) = [3.9350889407837069, 0.0, 0.0]
-    primitiveCrI2(2, :) = [0.0, 7.793970515734439, -0.0155822353114624]
-    ! Degine the basis vectors for the CrI2 structure.
-    basis_CrI2(1,:) = [0.00000000000000, 1.18048232888026, 15.66708540526766]  !Cr
-    basis_CrI2(2,:) = [1.96754466301406, 5.07735235387682, 15.66009018229279]  !Cr
-    basis_CrI2(3,:) = [1.96754466301406, 2.14455628147048, 17.30559462841125]  !I 
-    basis_CrI2(4,:) = [1.96754466301406, 0.21647035484051, 14.02945080633759]  !I
-    basis_CrI2(5,:) = [0.00000000000000, 6.04092814648801, 17.29708073114964]  !I
-    basis_CrI2(6,:) = [0.00000000000000, 4.11332427420235, 14.02184874359694]  !I
-
-
-    !write(*,*) 'This program generates the structures of CrI3.'
-    !write(*,*) 'Please provide the number of unit cells for the x direction:'
-    !read(5,*) nx
-    !write(*,*) 'Please provide the number of unit cells for the y direction:'
-    !read(5,*) ny
-
-
-
-
-    ! Define the lattice vectors for periodic boundary conditions.
-    vlatticeCrI3(1,:) = [primitiveCrI3(1,1)*nx, primitiveCrI3(1,2)*nx, primitiveCrI3(1,3)*nx]
-    vlatticeCrI3(2,:) = [primitiveCrI3(2,1)*ny, primitiveCrI3(2,2)*ny, primitiveCrI3(2,3)*ny]
-    vlatticeCrI2(1,:) = [primitiveCrI2(1,1)*nx, primitiveCrI2(1,2)*nx, primitiveCrI2(1,3)*nx]
-    vlatticeCrI2(2,:) = [primitiveCrI2(2,1)*ny, primitiveCrI2(2,2)*ny, primitiveCrI2(2,3)*ny]
 
     ! Calculate the number of atoms in the structure.
-    natoms = nx*ny*8
+    
     call cpu_time(start_time)
 
-    coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
-    !print *, coordinates
-    call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
-
-    ! Now that we have created the files containing the coordinates,
-    ! we can use them to create the array that will hold the neighbors for each Cr atom.
-    Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
-    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:))
-    !open(1, file='CrI3neighbors.txt', status='unknown')
-    !do i = 1, nx*ny*2 !cambiar a variable
-    !    write(1,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    !end do
-    !close(1)
+    neighbors = read_neighbors(Cr_neighbors, Cr_atoms)
+ 
     write(*,*) 'Now we generate the spins'
-    spins = generate_spins(nx*ny*2)
-
-    !(mcs, cratoms, nx, ny, T, J, H, spins, neighbors) 
+    spins = generate_spins(Cr_atoms, spins_orientation)
     
-    call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, int(neighbors))
+
+    
+    call temperature_sim(mcs, index_avg , Cr_atoms, nx, ny, initial_temperature, final_temperature, &
+    temperature_step, exchange, 0.0d0, spins, neighbors)
     print *, 'This is a mesagge to check that the program has finished.'
 
-    call cpu_time(end_time)
+    call cpu_time(end_time) 
     elapsed_time = end_time - start_time
 
-    open(unit=14, file='data_temp.txt', status="old", position='append', action="write")
+    open(unit=14, file='data/temperature/'//temp_iterator_file, status="old", position='append', action="write")
     write(14, *) 'This is the time it took to run the program: ', elapsed_time
     close(14)
     write(6, *) 'This is the time it took to run the program: ', elapsed_time
 contains 
 
-! This subroutine writes the coordinates to a xyz file.
-subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coordinates)
-    implicit none
-    character(len=*), intent(in) :: file1, file2
-    integer, intent(in) :: natoms
-    integer, intent(in) :: nx, ny
-    character(len=*), intent(in) :: comment !Optional comment to be written to the file.
-    character(len=2), dimension(:), intent(in) :: elements
-    real(8), dimension(natoms,3), intent(in) :: coordinates
-    integer :: i, j, ncells, count
-    ncells = natoms / size(elements)
-    open(1, file=file1, status='unknown')
-    open(2, file=file2, status='unknown')
-    write(1,*) natoms
-    write(1,*) 'Numbers of cells for x and y:  ', nx, ny
-    write(2,*) nx*ny*2
-    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
-    count = 0 
-    do i=1, ncells
-        do j=1, size(elements)
-            count = count + 1
-            write(6, *) 'Atoms = ', count
-            if ( elements(j) =='Cr' ) then
-                write(2, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            end if
-            write(1, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-        end do
-    end do
-    close(1)
-    close(2)
-end subroutine write_structures
 
-function xyz_to_array(file) result(coordinates)
+
+function read_neighbors(file, Cr_atoms)  result(neighbors)
     implicit none
     character(len=*), intent(in) :: file
-    integer :: natoms
-    real(8), dimension(:,:), allocatable :: coordinates
+    integer, intent(in) :: Cr_atoms
+    integer, dimension(:,:), allocatable :: neighbors
     integer :: i
-    character(len=2) :: element
-    open(1, file=file, status='old')
-    read(1,*) natoms
-    read(1,*) ! Skip the comment line.
-    allocate(coordinates(natoms,3))
-    do i=1, natoms
-        read(1,*) element, coordinates(i,1), coordinates(i,2), coordinates(i,3)
+    open(1, file='neighbors/'//file, status='old')
+    allocate(neighbors(Cr_atoms, 3))
+    do i = 1, Cr_atoms
+            read(1, '(3(I8))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
     end do
-    close(1)
-end function xyz_to_array
-
-function calculate_magnetization(spins) result(magnetization)
-    !Check logic of this function.
-    implicit none
-    real(8), dimension(:,:), intent(in) :: spins
-    real(8), dimension(3) :: magnetization_vector
-    real(8) :: magnetization
-    integer :: i
-    magnetization_vector = 0.0d0
-    do i = 1, size(spins,1)
-        magnetization_vector = magnetization_vector + spins(i,:)
-    end do
-    magnetization_vector =  magnetization_vector / size(spins,1)
-    magnetization = sqrt(dot_product(magnetization_vector, magnetization_vector))
-    end function calculate_magnetization
-
-    
-    ! This function calculates the Euclidean distance between two points (v1 and v2).
-function distance(v1, v2) result(dist)
-    implicit none
-    real(8), dimension(:), intent(in) :: v1, v2
-    real(8) :: dist
-    !dist = sqrt(sum((v1-v2)**2))
-    dist = sqrt(dot_product(v1-v2, v1-v2))
-end function distance
-
-! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
-function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(neighbors)
-    implicit none
-    real(8), dimension(:,:), intent(in) :: vectors
-    real(8), dimension(3), intent(in) :: vx, vy !Lattice vectors for periodic boundary conditions 
-    integer, intent(in) :: max_neighbors
-    real(8), intent(in) :: max_distance
-    integer :: i, j, n, count, n1, n2
-    integer, dimension(size(vectors,1), max_neighbors) :: neighbors
-    real(8) :: dist ! Distance between two atoms
-    n = size(vectors,1)
-    open(15, file='CrI3neighbors.txt', status='unknown')
-    ! Loop through all atoms and find their neighbors within the specified distance.
-    do i = 1, n
-        count = 0
-        do j = 1, n
-            do n1 = -1, 1
-                do n2 = -1, 1
-                    ! Calculate the distance between the two atoms.
-                    dist = distance(vectors(i,:), vectors(j,:) + n1*vx + n2*vy)
-                    ! Check if the atoms are not the same and if their distance is less than the maximum allowed distance.
-                    if (i /= j .and. dist <  max_distance) then
-                        count = count + 1
-                        ! If the atom already has the maximum number of neighbors, exit the loop.
-                        if (count > max_neighbors) then !Probably not necessary
-                            exit
-                        end if
-                        ! Store the index of the neighboring atom.
-                        neighbors(i, count) = int(j)
-                    end if
-                end do
-            end do
-        end do
-        ! Print the neighbors of the atom to a file.
-        write(15,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-        write(6, *) 'Neighbors of atom ', i, ' are ', int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    end do
-    close(15)
-end function find_neighbors
-
-! This function generates the coordinates of the atoms in the structure.
-function generate_structure(basis, primitive, nx, ny) result(coordinates)
-    implicit none
-    real(8), dimension(:,:), intent(in) :: basis
-    real(8), dimension(2,3), intent(in) :: primitive
-    integer, intent(in) :: nx, ny
-    real(8), dimension(nx*ny*size(basis,1),3) :: coordinates
-    integer :: i, j, k, n, count
-    n = size(basis,1)
-    count = 0
-    do i = 1, nx
-        do j = 1, ny
-            do k = 1, size(basis,1)
-                count = count + 1
-                coordinates(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
-            end do
-        end do
-    end do
-end function generate_structure
+end function read_neighbors
 
 
-function generate_spins(natoms) result(spins)
-    integer, intent(in) :: natoms
+function generate_spins(natoms, choice) result(spins)
+    integer, intent(in) :: natoms, choice
     real(8), dimension(natoms,3):: spins
-    integer :: choice, i
+    integer :: i
     real(8), dimension(3) :: spin
-    
-    write(*,*) "Choose an option: (1) ramdom directions or (2) fixed direction"
-    read(*,*) choice
     
     if (choice == 1) then
         !Each spin is a different randomly generated normal vector.
@@ -240,7 +66,7 @@ function generate_spins(natoms) result(spins)
             spins(i,:) = random_normal_vector()
         end do
         
-    else if (choice ==2) then
+    else 
         !All the spins are the same randomly generated normal vector.
         spin = random_normal_vector()
         spins(:,1) = spin(1)
@@ -248,24 +74,6 @@ function generate_spins(natoms) result(spins)
         spins(:,3) = spin(3)
     end if
 end function generate_spins
-
-
-function calculate_energy(spins, neighbors, J) result(energy)
-    implicit none
-    real(8), intent(in) :: spins(:,:) 
-    integer, intent(in), dimension(:,:) :: neighbors
-    real(8), intent(in):: J
-    real(8) :: energy
-    integer :: i, k
-    energy = 0.0d0
-    do i = 1, size(spins,1)
-        do k = 1, size(neighbors,2)
-            energy = energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) !Check whether the sign is correct!!!!!!!!!!!!!!!!
-        end do
-    end do
-    energy = energy/2 ! Each interaction is counted twice
-    !print *, energy
-end function calculate_energy
 
 
 function calculate_initial_energy(spins, neighbors, J) result(system_energy)
@@ -289,12 +97,13 @@ function calculate_initial_magnetization_vector(spins) result(magnetization_vect
     implicit none
     real(8), intent(in) :: spins(:,:)
     real(8), dimension(3) :: magnetization_vector
+    !real(8) :: magnetization
     integer :: i
     magnetization_vector = 0.0d0
     do i =1, size(spins,1)
         magnetization_vector = magnetization_vector + spins(i,:)
     end do 
-    !/ size(spins,1)
+    !magnetization_vector = magnetization_vector / size(spins,1)
     end function calculate_initial_magnetization_vector
 
 
@@ -349,7 +158,6 @@ function energy_change(old_system, new_system, neighbors, J, index) result(delta
     delta_E = (new_energy - original_energy)
 end function energy_change
 
- 
 
 function accept_change(delta_E, t) result(accept)
     implicit none
@@ -367,43 +175,41 @@ end function accept_change
 
 
 ! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
-subroutine simulation(mcs, CrAtoms, nx, ny, initial_temperature, J, H, spins, neighbors) 
+subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature, final_temperature, &
+    temperature_step, J, H, spins, neighbors) 
     implicit none
     
     !Declare input variables
-    integer, intent(in) :: mcs, CrAtoms, nx, ny
-    real(8), intent(in) :: initial_temperature, J, H
+    integer, intent(in) :: mcs, CrAtoms, nx, ny, index_avg
+    real(8), intent(in) :: J, H, initial_temperature, final_temperature, temperature_step
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
     
     !Declare local variables
     integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
-    real(8) :: current_energy, current_magnetization, delta_E, T
-    real(8), dimension(3) :: current_magnetization_vector, old_spin, new_spin, spin_sum
-    real(8) :: avg_energy, avg_magnetization
+    real(8) :: current_energy, current_magnetization, delta_E, T, &
+    energy_sum, magnetization_sum, energy_avg, magnetization_avg
+    real(8), dimension(3) :: current_magnetization_vector
     
-    
-    open(12, file='data_temp.txt', status='unknown')
-    write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
-    write(12,*) '#',seed, mcs, initial_temperature, CrAtoms, nx, ny, H
-    write(12,*) '#Mcs', 'Energy', 'Magnetization'
-    open(13, file='variables_temp.txt', status='unknown')
-    write(13,*) '#seed - mcs - initial_temperature - CrAtoms - nx - ny - H'
-    write(13,*) '#',seed, mcs, initial_temperature, CrAtoms, nx, ny, H
-
     current_energy = calculate_initial_energy(spins, neighbors, J)
     current_magnetization_vector = calculate_initial_magnetization_vector(spins)
     current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
     T = initial_temperature
-    !Lopp over the temperatures
-    do while (T < 100)
-        print*, 'Temperature: ', T
-        
-        !Loop over the number of Monte Carlo steps
+
+
+    open(12, file='data/temperature/'//temp_iterator_file, status='unknown')
+    write(12,*) '#seed - mcs - indavg - iT - fT - dT - CrAtoms - nx - ny - H'
+    write(12,*) '#', seed, mcs, index_avg, initial_temperature, &
+    final_temperature, temperature_step, CrAtoms, nx, ny, H
+    write(12,*) '#T', 'Energy', 'Magnetization'
+    
+    do while (T < final_temperature)
+        print *, 'Temperature: ', T
+        !Loop over the number of Monte Carlo stepsd
         do i = 1, mcs
-            print *, 'Mcs: ', i
-            !Loop over the number of atoms
+            print *, 'Temperature:  ', T, 'Mcs: ', i
+            !Loop over the number of CrAtoms
             do k = 1, CrAtoms
                 !Generate the index of a random spin to be flipped
                 spins_index = random_integer(1, CrAtoms)
@@ -422,40 +228,52 @@ subroutine simulation(mcs, CrAtoms, nx, ny, initial_temperature, J, H, spins, ne
                     !If the new system is accepted, update the spins and the total energy
                     spins = new_system
                     current_energy = current_energy + delta_E
-                    current_magnetization_vector = current_magnetization_vector  & 
+                    current_magnetization_vector = current_magnetization_vector &
                     - old_system(spins_index,:) + new_system(spins_index,:)
-                    current_magnetization_vector = current_magnetization_vector/size(spins,1)
-                    current_magnetization = sqrt(norm2(current_magnetization_vector))
-                    
                 end if
-                if (k == 1) then 
-                    !write(12, '(I7 ,2(1x, F16.9))') i, current_energy, current_magnetization
-                end if
+                current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
+                current_magnetization = current_magnetization / CrAtoms
             end do
         end do
-        close(12)
-        do i = 1, 100
-            spins_index = random_integer(1, CrAtoms)
-            old_system = spins
-            new_system = flip_ith_spin(spins, spins_index)
-            delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
-            if (accept_change(delta_E, T)) then
-                spins = new_system
-                current_energy = current_energy + delta_E
-                current_magnetization_vector = current_magnetization_vector &
-                - old_system(spins_index,:) + new_system(spins_index,:)
-                current_magnetization_vector = current_magnetization_vector/size(spins,1)
-                current_magnetization = sqrt(norm2(current_magnetization_vector))
-            end if
+        energy_sum = 0
+        magnetization_sum = 0
+        do i = 1, index_avg
+            print * ,'Temperature: ', T, 'Index avg: ', i
+            do k = 1, CrAtoms
+                !Generate the index of a random spin to be flipped
+                spins_index = random_integer(1, CrAtoms)
+                
+                
+                !Store the old system and generate a new one with one spin flipped
+                old_system = spins
+                new_system = flip_ith_spin(spins, spins_index)
+                
+                !Calculate the energy and magnetization of the old and new system
+                
+                delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
+                
+                !Decide wheter to accept the new system or not
+                if (accept_change(delta_E, T)) then
+                    !If the new system is accepted, update the spins and the total energy
+                    spins = new_system
+                    current_energy = current_energy + delta_E
+                    current_magnetization_vector = current_magnetization_vector &
+                    - old_system(spins_index,:) + new_system(spins_index,:)
+                end if
+                current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
+                current_magnetization = current_magnetization / CrAtoms
+            end do
+            energy_sum = energy_sum + current_energy
+            magnetization_sum = magnetization_sum + current_magnetization
         end do
-        avg_energy =  current_energy / 100
-        avg_magnetization = current_magnetization / 100
-        write(13, '(F7.2 ,2(1x, F16.9))') T, avg_energy, avg_magnetization
-        T = T + 1
-    end do  
-    close(13)
-    print *, 'End of the simulation'
-end subroutine simulation
+        energy_avg = energy_sum / index_avg
+        magnetization_avg = magnetization_sum / index_avg
+        write(12,*) T, energy_avg, magnetization_avg
+        T = T + temperature_step
+    end do
+    close(12)
+    print *, 'End of the temperature_sim'
+end subroutine temperature_sim
 
 
 
@@ -514,4 +332,4 @@ END FUNCTION ran2                      !to ensure nonzero value.
 
 
 
-end program main
+end program temperature_iterator

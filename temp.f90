@@ -10,12 +10,7 @@ program temperature_iterator
     real(8), dimension(:,:), allocatable :: spins
     integer, dimension(:,:), allocatable :: neighbors
   
-    !Call variables from the vairables module.
-    call read_parameters()
-
-
-    ! Calculate the number of atoms in the structure.
-    
+    call read_parameters()    
     call cpu_time(start_time)
 
     neighbors = read_neighbors(Cr_neighbors, Cr_atoms)
@@ -268,7 +263,7 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
         end do
         energy_avg = energy_sum / index_avg
         magnetization_avg = magnetization_sum / index_avg
-        write(12,*) T, energy_avg, magnetization_avg
+        write(12,*) T, energy_avg/Cr_atoms, magnetization_avg
         T = T + temperature_step
     end do
     close(12)

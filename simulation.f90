@@ -4,33 +4,20 @@ program main
     implicit none
     
 
-
     ! Define variables.
     integer :: natoms, i
     real :: start_time, end_time, elapsed_time
-
-    real(8), dimension(:,:), allocatable :: coordinates, Cr_coordinates, spins
+    real(8), dimension(:,:), allocatable :: spins
     integer, dimension(:,:), allocatable :: neighbors
   
     call read_parameters()
-    ! Calculate the number of atoms in the structure.
-    natoms = nx*ny*8
     call cpu_time(start_time)
-
-    !coordinates = generate_structure(basis_CrI3, primitiveCrI3, nx, ny)
-
-    
-    !call write_structures('CrI3.xyz', 'CrI3withoutI3.xyz', natoms, nx, ny, 'CrI3 structure', elementsCrI3, coordinates)
-
-    ! Now that we have created the files containing the coordinates,
-    ! we can use them to create the array that will hold the neighbors for each Cr atom.
-    !Cr_coordinates =  xyz_to_array('CrI3withoutI3.xyz')
 
 
     neighbors = read_neighbors(Cr_neighbors, Cr_atoms)
  
     write(*,*) 'Now we generate the spins'
-    spins = generate_spins(nx*ny*2)
+    spins = generate_spins(Cr_atoms, spins_orientation)
 
 
     
@@ -183,15 +170,11 @@ function generate_structure(basis, primitive, nx, ny) result(coordinates)
 end function generate_structure
 
 
-function generate_spins(natoms) result(spins)
-    integer, intent(in) :: natoms
+function generate_spins(natoms, choice) result(spins)
+    integer, intent(in) :: natoms, choice
     real(8), dimension(natoms,3):: spins
-    integer :: choice, i
+    integer :: i
     real(8), dimension(3) :: spin
-    
-    !write(*,*) "Choose an option: (1) ramdom directions or (2) fixed direction"
-    !read(*,*) choice
-    choice = 1
     
     if (choice == 1) then
         !Each spin is a different randomly generated normal vector.
@@ -199,7 +182,7 @@ function generate_spins(natoms) result(spins)
             spins(i,:) = random_normal_vector()
         end do
         
-    else if (choice ==2) then
+    else 
         !All the spins are the same randomly generated normal vector.
         spin = random_normal_vector()
         spins(:,1) = spin(1)
@@ -363,7 +346,7 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
             current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
             current_magnetization = current_magnetization / CrAtoms
             if (k == 1) then 
-                write(12, '(I7 ,2(1x, F16.9))') i, current_energy, current_magnetization
+                write(12, '(I7 , F16.9, F16.9)') i, current_energy/Cr_atoms , current_magnetization
             end if
         end do
 

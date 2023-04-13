@@ -8,7 +8,7 @@ module variables
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
     real(8), public :: kB = 8.617333262D-2
-    real(8), parameter :: exchange = 2.76
+    real(8), parameter :: exchange = 2.76*2
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
 

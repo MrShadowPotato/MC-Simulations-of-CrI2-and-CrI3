@@ -17,7 +17,7 @@ class Data:
         self.temp_iterator_file = self.temp_iterator_file()
 
     def output_file(self):
-        return f'nxy{self.nx}t{self.temperature}m{self.mcs}s{self.seed}o{self.spins_orientation}.txt'
+        return f'n{self.nx}t{self.temperature}m{self.mcs}s{self.seed}o{self.spins_orientation}.txt'
     
     def temp_iterator_file(self):
         return f'n{self.nx}t{self.iT}-{self.fT}d{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}s{self.seed}.txt'

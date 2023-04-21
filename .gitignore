@@ -4,15 +4,18 @@
 *.exe
 *.out
 *.output
-test*
+*.txt
+*.xyz
 
+test*
+tmp*
 x*
+
+
 structures/
 executable/
 temp_output/
 stabilizer_output/
 generate_output/
 graphs/
-*.txt
-*.xyz
 .vscode/

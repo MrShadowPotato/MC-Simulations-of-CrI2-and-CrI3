@@ -2,7 +2,8 @@ import subprocess
 import time
 
 class Data:
-    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000):
+    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000, compound='CrI3'):
+        self.compound = compound
         self.seed = seed
         self.mcs = mcs
         self.temperature = temperature
@@ -38,7 +39,8 @@ class Data:
             f.write(f'temperature_step = {self.dT}\n')
             f.write(f'index = {self.idx}\n')
             f.write(f'temp_iterator_file = {self.temp_iterator_file}\n')
-    
+            f.write(f'compound = {self.compound}\n')
+
 
 
 
@@ -50,6 +52,15 @@ print('Enter 2 to run xgenerate')
 print('Enter 3 to run xtemp')
 choice =input('Choice: ')
 
+print('Please select a compound:')
+compound = input('[1] <-- CrI3 ||| CrI2 --> [2]')
+if compound == '1':
+    compound = 'CrI3'
+elif compound == '2':
+    compound = 'CrI2'
+else: 
+    print('Invalid input, exiting...')
+    exit()
 
 initial_nxy = int(input('Enter the initial nx and ny (nx = ny): '))
 final_nxy = int(input('Enter the final nx and ny (nx = ny): '))
@@ -72,6 +83,7 @@ elif choice == '3':
     idx = int(input('Enter the index averager: '))
 
 number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n)))
+
 print('You are going to print the following values for N:')
 print(list(range(initial_nxy, final_nxy + 1, step_n)))
 print(' and you are going to print the following values for seeds:')
@@ -80,26 +92,25 @@ print('That would call a total of ', number_of_simulations, ' simulations.')
 print('Simulations : ', number_of_simulations)
 print('Are you sure you want to continue?')
 print('Enter 1 to continue or anything else to exit: ')
+confirmation = input()
 
-confirmation = int(input())
-
-if confirmation == 1:
+if confirmation == '1':
     if choice == '1' or choice == '3':
             for nxy in range(initial_nxy, final_nxy + 1, step_n):
                 print(f'Running for nxy = {nxy}...')
                 for seed in seeds:
                     print(f'Running for seed = {seed}...')
                     if choice == '1':
-                        Data(seed, mcs, temperature, nxy, nxy, spins_orientation).write_params()
+                        Data(seed=seed, mcs=mcs, temperature=temperature, nx=nxy, ny=nxy, spins_orientation=spins_orientation, compound=compound).write_params()
                         subprocess.run(f'nohup ./xsimulation > ./stabilizer_output/n{nxy}t{temperature}s{seed}.output &', shell=True)
                     elif choice == '3':
-                        Data(spins_orientation=spins_orientation, iT=iT, fT=fT, dT=dT, idx=idx, mcs=mcs, nx=nxy, ny=nxy, seed=seed).write_params()
+                        Data(spins_orientation=spins_orientation, iT=iT, fT=fT, dT=dT, idx=idx, mcs=mcs, nx=nxy, ny=nxy, seed=seed, compound=compound).write_params()
                         subprocess.run(f'nohup ./xtemp > ./temp_output/n{nxy}t{iT}-{fT}d{dT}s{seed}.output &', shell=True)
                     time.sleep(0.1) 
                         
     elif choice == '2':
         for nxy in range(initial_nxy, final_nxy + 1):
-                Data(-111, mcs, temperature, nxy, nxy, spins_orientation).write_params()
+                Data(nx=nxy, ny=nxy, compound=compound).write_params()
                 subprocess.run(f'nohup ./xgenerate > ./generate_output/n{nxy}generate.output &', shell=True)
                 time.sleep(0.1) 
 

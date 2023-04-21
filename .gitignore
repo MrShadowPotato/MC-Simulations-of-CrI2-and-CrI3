@@ -3,11 +3,13 @@
 *.mod
 *.exe
 *.out
+*.output
 test*
 
 x*
 structures/
 executable/
+temp_output/
 stabilizer_output/
 generate_output/
 graphs/

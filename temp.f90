@@ -6,7 +6,7 @@ program temperature_iterator
 
     ! Define local variables.
     integer :: i
-    real :: start_time, end_time, elapsed_time
+    real :: start_time, end_time, elapsed_time, current_time
     real(8), dimension(:,:), allocatable :: spins
     integer, dimension(:,:), allocatable :: neighbors
   
@@ -184,7 +184,9 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
     integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
     real(8) :: current_energy, current_magnetization, delta_E, T, &
-    energy_sum, magnetization_sum, energy_avg, magnetization_avg
+    energy_sum, magnetization_sum, energy_avg, magnetization_avg, &
+    sqrd_energy_sum, sqrd_magnetization_sum, sqrd_energy_avg, sqrd_magnetization_avg, &
+    beta, Cv, Chi
     real(8), dimension(3) :: current_magnetization_vector
     
     current_energy = calculate_initial_energy(spins, neighbors, J)
@@ -192,18 +194,20 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
     current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
     T = initial_temperature
 
-
     open(12, file='data/temperature/'//temp_iterator_file, status='unknown')
     write(12,*) '#seed - mcs - indavg - iT - fT - dT - CrAtoms - nx - ny - H'
     write(12,*) '#', seed, mcs, index_avg, initial_temperature, &
     final_temperature, temperature_step, CrAtoms, nx, ny, H
-    write(12,*) '#T', 'Energy', 'Magnetization'
+    write(12,*) '#T', 'Energy', 'Magnetization', 'Mx', 'My', 'Mz', 'Cv', 'Chi'
     
     do while (T < final_temperature)
-        print *, 'Temperature: ', T
+        write(6,*) 'Temperature: ', T
+        call cpu_time(current_time)
+        write(6,*) 'Time elapsed so far: ', current_time - start_time
         !Loop over the number of Monte Carlo stepsd
         do i = 1, mcs
-            print *, 'Temperature:  ', T, 'Mcs: ', i
+            write(6,*) 'Temperature:  ', T, 'Mcs: ', i
+            flush(6)
             !Loop over the number of CrAtoms
             do k = 1, CrAtoms
                 !Generate the index of a random spin to be flipped
@@ -231,9 +235,12 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
             end do
         end do
         energy_sum = 0
+        sqrd_energy_sum = 0
         magnetization_sum = 0
+        sqrd_magnetization_sum = 0
         do i = 1, index_avg
-            print * ,'Temperature: ', T, 'Index avg: ', i
+            write(6,*) 'Temperature: ', T, 'Index avg: ', i
+            flush(6)
             do k = 1, CrAtoms
                 !Generate the index of a random spin to be flipped
                 spins_index = random_integer(1, CrAtoms)
@@ -260,10 +267,20 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
             end do
             energy_sum = energy_sum + current_energy
             magnetization_sum = magnetization_sum + current_magnetization
+            sqrd_energy_sum = sqrd_energy_sum + current_energy**2
+            sqrd_magnetization_sum = sqrd_magnetization_sum + current_magnetization**2
         end do
         energy_avg = energy_sum / index_avg
         magnetization_avg = magnetization_sum / index_avg
-        write(12,*) T, energy_avg/Cr_atoms, magnetization_avg
+        sqrd_energy_avg = sqrd_energy_sum / index_avg
+        sqrd_magnetization_avg = sqrd_magnetization_sum / index_avg
+        beta = 1 / T*kB
+       
+        Cv = kB * beta**2 * (sqrd_energy_avg - energy_avg**2)/(Cr_atoms**2) 
+        Chi = beta * (sqrd_magnetization_avg - magnetization_avg**2) 
+        write(12,*) T, energy_avg/Cr_atoms, magnetization_avg, current_magnetization_vector(:)/Cr_atoms, Cv, Chi
+        flush(12)
+        
         T = T + temperature_step
     end do
     close(12)

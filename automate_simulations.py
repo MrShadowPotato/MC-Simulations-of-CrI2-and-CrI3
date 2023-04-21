@@ -14,16 +14,16 @@ class Data:
         self.fT = fT
         self.dT = dT
         self.idx = idx
-        self.output_file = self.output_file()
-        self.temp_iterator_file = self.temp_iterator_file()
+        self.path_simulation_data = self.path_simulation_data()
+        self.path_temperature_data = self.path_temperature_data()
 
-    def output_file(self):
-        return f'n{self.nx}t{self.temperature}m{self.mcs}s{self.seed}o{self.spins_orientation}.txt'
+    def path_simulation_data(self):
+        return f'{self.compound}n{self.nx}t{self.temperature}m{self.mcs}s{self.seed}o{self.spins_orientation}.txt'
     
-    def temp_iterator_file(self):
-        return f'n{self.nx}t{self.iT}-{self.fT}d{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}s{self.seed}.txt'
+    def path_temperature_data(self):
+        return f'{self.compound}n{self.nx}t{self.iT}-{self.fT}d{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}s{self.seed}.txt'
     
-    def write_params(self, compuond='CrI3'):
+    def write_params(self):
         with open ('params.txt', 'w') as f:
             f.write(f'seed = {self.seed}\n')
             f.write(f'mcs = {self.mcs}\n')
@@ -31,14 +31,14 @@ class Data:
             f.write(f'nx = {self.nx}\n')
             f.write(f'ny = {self.ny}\n')
             f.write(f'spins_orientation = {self.spins_orientation}\n')
-            f.write(f'output_file = {self.output_file}\n')
-            f.write(f'Cr_xyz = n{self.nx}Cr_{compuond}.xyz\n')
-            f.write(f'CrI3_xyz = n{self.nx}Cr_{compuond}neighbors.txt\n')
+            f.write(f'path_simulation_data = {self.path_simulation_data}\n')
+            f.write(f'Cr_xyz = Cr_{self.compound}n{self.nx}.xyz\n')
+            f.write(f'Cr_neighbors = Cr_{self.compound}n{self.nx}neighbors.txt\n')
             f.write(f'initial_temperatre = {self.iT}\n')
             f.write(f'final_temperature = {self.fT}\n')
             f.write(f'temperature_step = {self.dT}\n')
             f.write(f'index = {self.idx}\n')
-            f.write(f'temp_iterator_file = {self.temp_iterator_file}\n')
+            f.write(f'path_temperature_data = {self.path_temperature_data}\n')
             f.write(f'compound = {self.compound}\n')
 
 

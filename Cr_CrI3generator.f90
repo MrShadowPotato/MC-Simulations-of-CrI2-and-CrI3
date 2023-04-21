@@ -4,9 +4,9 @@ program structure
     real(8), dimension(:,:), allocatable :: Cr_coordinates, neighbors
     integer :: i
     call read_parameters()
-    Cr_coordinates = write_Cr(basis_CrI3, primitiveCrI3, nx, ny, Cr_xyz)
+    Cr_coordinates = write_Cr(basis, primitive, nx, ny, Cr_xyz)
     
-    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlatticeCrI3(1,:), vlatticeCrI3(2,:), Cr_neighbors)
+    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlattice(1,:), vlattice(2,:), Cr_neighbors)
 
     
 
@@ -24,7 +24,7 @@ function write_Cr(basis, primitive, nx, ny, Cr_file) result(coordinates)
     integer :: i, j, k, count
     open(2, file='Cr_coordinates/'//Cr_file, status='unknown')
     write(2,*) nx*ny*Cr_per_cell
-    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
+    write(2,*) 'Cr positions for CrI3 with nx and ny respectively', nx, ny
     count = 0
     do i = 1, nx
         do j = 1, ny

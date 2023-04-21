@@ -1,14 +1,16 @@
 module variables
     implicit none
     character(len=1000) :: dummy
-    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file
+    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound
     integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation, index_avg
     real(8), public :: temperature, initial_temperature, final_temperature, temperature_step
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
+    real(8), dimension(3) :: easy_vectorCrI3, easy_vectorCrI2, easy_vector !Easy axis vector.
     real(8), public :: kB = 8.617333262D-2
     real(8), parameter :: exchange = 2.76*2
+    real(8), parameter :: anisotropy = 0.67 ! x2???
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
 
@@ -37,11 +39,13 @@ contains
         read(10,*) dummy, dummy, temperature_step
         read(10,*) dummy, dummy, index_avg
         read(10,*) dummy, dummy, temp_iterator_file
+        read(10,*) dummy, dummy, compound
         
         ! Close the file
         close(unit=10)
         
         ! Print the parameters
+        write(*,*) "compound =", compound
         write(*,*) "seed = ", seed
         write(*,*) "mcs = ", mcs
         write(*,*) "temperature = ", temperature
@@ -51,6 +55,7 @@ contains
         write(*,*) "output_file = ", output_file
         write(*,*) "Cr_xyz = ", Cr_xyz
         write(*,*) "Cr_neighbors = ", Cr_neighbors
+        
 
         Cr_atoms = 2*nx*ny
 
@@ -84,7 +89,21 @@ contains
         vlatticeCrI3(2,:) = [primitiveCrI3(2,1)*ny, primitiveCrI3(2,2)*ny, primitiveCrI3(2,3)*ny]
         vlatticeCrI2(1,:) = [primitiveCrI2(1,1)*nx, primitiveCrI2(1,2)*nx, primitiveCrI2(1,3)*nx]
         vlatticeCrI2(2,:) = [primitiveCrI2(2,1)*ny, primitiveCrI2(2,2)*ny, primitiveCrI2(2,3)*ny]
-            
+
+        ! Define the easy axis vector.
+        easy_vectorCrI3(1) = primitiveCrI3(1,2) * primitiveCrI3(2,3) - primitiveCrI3(1,3) * primitiveCrI3(2,2)
+        easy_vectorCrI3(2) = primitiveCrI3(1,3) * primitiveCrI3(2,1) - primitiveCrI3(1,1) * primitiveCrI3(2,3)
+        easy_vectorCrI3(3) = primitiveCrI3(1,1) * primitiveCrI3(2,2) - primitiveCrI3(1,2) * primitiveCrI3(2,1)
+        easy_vectorCrI3 = easy_vectorCrI3 / sqrt(dot_product(easy_vectorCrI3, easy_vectorCrI3))
+
+        easy_vectorCrI2(1) = primitiveCrI2(1,2) * primitiveCrI2(2,3) - primitiveCrI2(1,3) * primitiveCrI2(2,2)
+        easy_vectorCrI2(2) = primitiveCrI2(1,3) * primitiveCrI2(2,1) - primitiveCrI2(1,1) * primitiveCrI2(2,3)
+        easy_vectorCrI2(3) = primitiveCrI2(1,1) * primitiveCrI2(2,2) - primitiveCrI2(1,2) * primitiveCrI2(2,1)
+        easy_vectorCrI2 = easy_vectorCrI2 / sqrt(dot_product(easy_vectorCrI2, easy_vectorCrI2))
+    
+        if (compound == 'CrI3') then
+            easy_vector = easy_vectorCrI3
+        end if
     end subroutine read_parameters
     
 

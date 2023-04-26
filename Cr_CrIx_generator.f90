@@ -1,16 +1,14 @@
-program structure
+program Cr_CrIx_structures
     use variables
     implicit none
     real(8), dimension(:,:), allocatable :: Cr_coordinates, neighbors
     integer :: i
     call read_parameters()
     Cr_coordinates = write_Cr(basis, primitive, nx, ny, Cr_xyz)
-    
-    neighbors = find_neighbors(Cr_coordinates, 4.0d0, 3, vlattice(1,:), vlattice(2,:), Cr_neighbors)
+    neighbors = find_neighbors(Cr_coordinates, neighbor_max_distance, &
+    max_neighbors, vlattice(1,:), vlattice(2,:), Cr_neighbors)
 
     
-
-
 contains
 function write_Cr(basis, primitive, nx, ny, Cr_file) result(coordinates)
     implicit none
@@ -24,7 +22,7 @@ function write_Cr(basis, primitive, nx, ny, Cr_file) result(coordinates)
     integer :: i, j, k, count
     open(2, file='Cr_coordinates/'//Cr_file, status='unknown')
     write(2,*) nx*ny*Cr_per_cell
-    write(2,*) 'Cr positions for CrI3 with nx and ny respectively', nx, ny
+    write(2,*) 'Cr positions for CrIx with nx and ny respectively', nx, ny
     count = 0
     do i = 1, nx
         do j = 1, ny
@@ -40,36 +38,6 @@ function write_Cr(basis, primitive, nx, ny, Cr_file) result(coordinates)
     close(2)
 end function write_Cr
 
-
-function xyz_to_array(file) result(coordinates)
-    implicit none
-    character(len=*), intent(in) :: file
-    integer :: natoms
-    real(8), dimension(:,:), allocatable :: coordinates
-    integer :: i
-    character(len=2) :: element
-    open(1, file=file, status='old')
-    read(1,*) natoms
-    read(1,*) ! Skip the comment line.
-    allocate(coordinates(natoms,3))
-    do i=1, natoms
-        read(1,*) element, coordinates(i,1), coordinates(i,2), coordinates(i,3)
-    end do
-    close(1)
-end function xyz_to_array
-
-function read_neighbors(file, Cr_atoms)  result(neighbors)
-    implicit none
-    character(len=*), intent(in) :: file
-    integer, intent(in) :: Cr_atoms
-    integer, dimension(:,:), allocatable :: neighbors
-    integer :: i
-    open(1, file='neighbors/'//file, status='old')
-    allocate(neighbors(Cr_atoms, 3))
-    do i = 1, Cr_atoms
-            read(1, '(3(I8))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
-    end do
-end function read_neighbors
 
 function find_neighbors(vectors, max_distance, max_neighbors, vx, vy, neighbors_file) result(neighbors)
     implicit none
@@ -115,36 +83,4 @@ function find_neighbors(vectors, max_distance, max_neighbors, vx, vy, neighbors_
 end function find_neighbors
 
 
-subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coordinates)
-    implicit none
-    character(len=*), intent(in) :: file1, file2
-    integer, intent(in) :: natoms
-    integer, intent(in) :: nx, ny
-    character(len=*), intent(in) :: comment !Optional comment to be written to the file.
-    character(len=2), dimension(:), intent(in) :: elements
-    real(8), dimension(natoms,3), intent(in) :: coordinates
-    integer :: i, j, ncells, count
-    ncells = natoms / size(elements)
-    open(1, file=file1, status='unknown')
-    open(2, file=file2, status='unknown')
-    write(1,*) natoms
-    write(1,*) 'Numbers of cells for x and y:  ', nx, ny
-    write(2,*) nx*ny*2
-    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
-    count = 0 
-    do i=1, ncells
-        do j=1, size(elements)
-            count = count + 1
-            write(6, *) 'Atoms = ', count
-            if ( elements(j) =='Cr' ) then
-                write(2, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            end if
-            write(1, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-        end do
-    end do
-    close(1)
-    close(2)
-end subroutine write_structures
-
-end program structure
+end program Cr_CrIx_structures

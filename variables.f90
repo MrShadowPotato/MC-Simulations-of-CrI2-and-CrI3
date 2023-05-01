@@ -107,20 +107,23 @@ contains
             primitive = primitiveCrI3
             vlattice = vlatticeCrI3
             easy_vector = easy_vectorCrI3
-            basis = basis_CrI3
+            allocate(basis(8,3))
+            basis(:,:) = basis_CrI3(:,:)
             max_neighbors = 3
-            neighbor_max_distance = 4.0d0
             allocate(elements(8))
             elements(:) = elementsCrI3(:)
+            neighbor_max_distance = 4.0d0
+
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
             vlattice = vlatticeCrI2
             easy_vector = easy_vectorCrI2
-            basis = vlatticeCrI2
-            max_neighbors = 3
-            neighbor_max_distance = 4.0d0
+            allocate(basis(6,3))
+            basis(:,:) = basis_CrI2(:,:)
+            max_neighbors = 2
             allocate(elements(6))
             elements(:) = elementsCrI2(:)
+            neighbor_max_distance = 4.0d0
         else 
             write(6,*) "Error: Compound does not match available options."
             write(6,*) "Closing program..."

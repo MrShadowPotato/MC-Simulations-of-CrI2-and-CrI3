@@ -5,7 +5,7 @@ program easyaxis
     
 
     ! Define variables.
-    integer :: natoms, i
+    integer :: i
     real :: start_time, end_time, elapsed_time
     real(8), dimension(:,:), allocatable :: spins
     integer, dimension(:,:), allocatable :: neighbors
@@ -31,69 +31,9 @@ program easyaxis
     write(14, *) 'This is the time it took to run the program: ', elapsed_time
     close(14)
     write(6, *) 'This is the time it took to run the program: ', elapsed_time
+ 
 contains 
 
-! This subroutine writes the coordinates to a xyz file.
-subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coordinates)
-    implicit none
-    character(len=*), intent(in) :: file1, file2
-    integer, intent(in) :: natoms
-    integer, intent(in) :: nx, ny
-    character(len=*), intent(in) :: comment !Optional comment to be written to the file.
-    character(len=2), dimension(:), intent(in) :: elements
-    real(8), dimension(natoms,3), intent(in) :: coordinates
-    integer :: i, j, ncells, count
-    ncells = natoms / size(elements)
-    open(1, file=file1, status='unknown')
-    open(2, file=file2, status='unknown')
-    write(1,*) natoms
-    write(1,*) 'Numbers of cells for x and y:  ', nx, ny
-    write(2,*) nx*ny*2
-    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
-    count = 0 
-    do i=1, ncells
-        do j=1, size(elements)
-            count = count + 1
-            write(6, *) 'Atoms = ', count
-            if ( elements(j) =='Cr' ) then
-                write(2, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            end if
-            write(1, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-        end do
-    end do
-    close(1)
-    close(2)
-end subroutine write_structures
-
-function xyz_to_array(file) result(coordinates)
-    implicit none
-    character(len=*), intent(in) :: file
-    integer :: natoms
-    real(8), dimension(:,:), allocatable :: coordinates
-    integer :: i
-    character(len=2) :: element
-    open(1, file=file, status='old')
-    read(1,*) natoms
-    read(1,*) ! Skip the comment line.
-    allocate(coordinates(natoms,3))
-    do i=1, natoms
-        read(1,*) element, coordinates(i,1), coordinates(i,2), coordinates(i,3)
-    end do
-    close(1)
-end function xyz_to_array
-
-
-
-    
-    ! This function calculates the Euclidean distance between two points (v1 and v2).
-function distance(v1, v2) result(dist)
-    implicit none
-    real(8), dimension(:), intent(in) :: v1, v2
-    real(8) :: dist
-    !dist = sqrt(sum((v1-v2)**2))
-    dist = sqrt(dot_product(v1-v2, v1-v2))
-end function distance
 
 function read_neighbors(file, Cr_atoms)  result(neighbors)
     implicit none
@@ -123,7 +63,7 @@ function generate_spins(natoms, choice) result(spins)
         
     else 
         !All the spins are the same randomly generated normal vector.
-        spin = random_normal_vector(seed)
+        spin = initial_magnetization_vector(:)
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
         spins(:,3) = spin(3)
@@ -143,7 +83,8 @@ function calculate_initial_energy(spins, neighbors, J, anisotropy, easyaxis) res
     system_energy = 0.0d0
     do i = 1, size(spins,1)
         do k = 1, size(neighbors,2)
-            system_energy = system_energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) - anisotropy * dot_product(spins(i,:), easyaxis(:))**2
+            system_energy = system_energy - J * dot_product(spins(i,:), spins(neighbors(i,k),:)) - &
+            2 * anisotropy * dot_product(spins(i,:), easyaxis(:))**2
         end do
     end do
     system_energy = system_energy/2 ! Each interaction is counted twice
@@ -162,20 +103,6 @@ function calculate_initial_magnetization_vector(spins) result(magnetization_vect
     end do 
     !magnetization_vector = magnetization_vector / size(spins,1)
     end function calculate_initial_magnetization_vector
-
-
-function calculate_spin_energy(spins, neighbors, index, J) result(energy)
-    real(8), intent(in) :: spins(:,:)
-    integer, intent(in), dimension(:,:) :: neighbors
-    integer, intent(in) :: index
-    real(8), intent(in) :: J
-    integer :: i
-    real(8) :: energy 
-    energy = 0.0d0 
-    do i = 1, size(neighbors,2)
-        energy = energy - 2 * J * dot_product(spins(index,:), spins(neighbors(index,i),:))
-    end do
-end function calculate_spin_energy
 
 
 function flip_ith_spin(spins, ith) result(new_spins)
@@ -208,8 +135,10 @@ function energy_change(old_system, new_system, neighbors, J, index) result(delta
     new_spin = new_system(index,:)
     
     do i = 1, size(neighbors,2)
-        original_energy = original_energy - J * dot_product(original_spin, spins(neighbors(index,i),:))
-        new_energy = new_energy - J * dot_product(new_spin, spins(neighbors(index,i),:))
+        original_energy = original_energy - J * dot_product(original_spin, spins(neighbors(index,i),:)) &
+        - anisotropy * dot_product(original_spin, easy_vector(:))**2
+        new_energy = new_energy - J * dot_product(new_spin, spins(neighbors(index,i),:)) &
+        - anisotropy * dot_product(new_spin, easy_vector(:))**2
     end do
 
     delta_E = (new_energy - original_energy)
@@ -249,15 +178,15 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
     real(8), dimension(3) :: current_magnetization_vector
     
     
-    open(12, file='data/stabilizer/'//output_file, status='unknown')
-    write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
-    write(12,*) '#', seed, mcs, T, CrAtoms, nx, ny, H
+    open(12, file='data/stabilizer_anisotropy/'//output_file, status='unknown')
+    write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - initial_magnetization_vector'
+    write(12,*) '#', seed, mcs, T, CrAtoms, nx, ny, initial_magnetization_vector(:)
     
     write(12,*) '#Mcs', 'Energy', 'Magnetization'
     !close(12)
     !stop
     !Loop over the number of Monte Carlo steps
-    current_energy = calculate_initial_energy(spins, neighbors, J, anisotropy, easyaxis)
+    current_energy = calculate_initial_energy(spins, neighbors, J, anisotropy, easy_vector)
     current_magnetization_vector = calculate_initial_magnetization_vector(spins)
     current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
 

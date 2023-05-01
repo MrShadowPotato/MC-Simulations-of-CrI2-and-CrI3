@@ -1,6 +1,6 @@
 module variables
     implicit none
-    character(len=1000) :: dummy
+    character(len=1000) :: dummy, magnetization_direction
     character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound
     integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation, index_avg, max_neighbors
     real(8), public :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance
@@ -10,12 +10,13 @@ module variables
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
     real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
+    real(8), dimension(3), public :: initial_magnetization_vector
     real(8), public :: kB = 8.617333262D-2
     real(8), parameter :: exchange = 2.76*2
     real(8), parameter :: anisotropy = 0.67 ! x2???
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
-
+    character(len=2), dimension(:), allocatable :: elements
     
 contains
 
@@ -42,21 +43,11 @@ contains
         read(10,*) dummy, dummy, index_avg
         read(10,*) dummy, dummy, temp_iterator_file
         read(10,*) dummy, dummy, compound
+        read(10,*) dummy, dummy, magnetization_direction
+
         
         ! Close the file
         close(unit=10)
-        
-        ! Print the parameters
-        write(6,*) "compound =", compound
-        write(6,*) "seed = ", seed
-        write(6,*) "mcs = ", mcs
-        write(6,*) "temperature = ", temperature
-        write(6,*) "nx = ", nx
-        write(6,*) "ny = ", ny
-        write(6,*) "spins_orientation = ", spins_orientation
-        write(6,*) "output_file = ", output_file
-        write(6,*) "Cr_xyz = ", Cr_xyz
-        write(6,*) "Cr_neighbors = ", Cr_neighbors
         
 
         Cr_atoms = 2*nx*ny
@@ -110,8 +101,8 @@ contains
         basis_CrI2(5,:) = [0.00000000000000, 6.04092814648801, 17.29708073114964]  !I
         basis_CrI2(6,:) = [0.00000000000000, 4.11332427420235, 14.02184874359694]  !I
 
-
-
+        
+        
         if (compound == 'CrI3') then
             primitive = primitiveCrI3
             vlattice = vlatticeCrI3
@@ -119,17 +110,49 @@ contains
             basis = basis_CrI3
             max_neighbors = 3
             neighbor_max_distance = 4.0d0
+            allocate(elements(8))
+            elements(:) = elementsCrI3(:)
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
             vlattice = vlatticeCrI2
             easy_vector = easy_vectorCrI2
             basis = vlatticeCrI2
+            max_neighbors = 3
+            neighbor_max_distance = 4.0d0
+            allocate(elements(6))
+            elements(:) = elementsCrI2(:)
         else 
             write(6,*) "Error: Compound does not match available options."
             write(6,*) "Closing program..."
             stop
         end if
         
+        !Define initial magnetization vector
+        if (magnetization_direction == 'easy') then
+            initial_magnetization_vector = easy_vector
+
+        else if (magnetization_direction == 'reversed_easy') then
+            initial_magnetization_vector = -easy_vector
+
+        else if (magnetization_direction == 'p1') then !takes the direction of the first primitive vector
+            initial_magnetization_vector = primitive(1,:)
+
+        else if (magnetization_direction == 'p2') then
+            initial_magnetization_vector = primitive(2,:)
+
+        else if (magnetization_direction == 'p1_p2plane') then
+            initial_magnetization_vector = primitive(1,:) + primitive(2,:)
+        else if (magnetization_direction == '45deg') then 
+            initial_magnetization_vector = primitive(1,:) + primitive(2,:)
+            initial_magnetization_vector = initial_magnetization_vector /  &
+            sqrt(dot_product(initial_magnetization_vector, initial_magnetization_vector))
+            initial_magnetization_vector = initial_magnetization_vector + easy_vector
+        end if
+        
+
+        initial_magnetization_vector = initial_magnetization_vector / &
+        sqrt(dot_product(initial_magnetization_vector, initial_magnetization_vector))
+
     end subroutine read_parameters
     
 

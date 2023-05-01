@@ -1,11 +1,11 @@
 program main
     use variables 
-    !use rng
+    use rng
     implicit none
     
 
     ! Define variables.
-    integer :: natoms, i
+    integer :: i
     real :: start_time, end_time, elapsed_time
     real(8), dimension(:,:), allocatable :: spins
     integer, dimension(:,:), allocatable :: neighbors
@@ -21,7 +21,7 @@ program main
 
 
     
-    call simulation(mcs, nx*ny*2, nx, ny, temperature, exchange, 0.0d0, spins, neighbors)
+    call simulation(mcs, Cr_atoms, nx, ny, temperature, exchange, spins, neighbors)
     print *, 'This is a mesagge to check that the program has finished.'
 
     call cpu_time(end_time)
@@ -33,67 +33,6 @@ program main
     write(6, *) 'This is the time it took to run the program: ', elapsed_time
 contains 
 
-! This subroutine writes the coordinates to a xyz file.
-subroutine write_structures(file1, file2, natoms, nx, ny, comment, elements, coordinates)
-    implicit none
-    character(len=*), intent(in) :: file1, file2
-    integer, intent(in) :: natoms
-    integer, intent(in) :: nx, ny
-    character(len=*), intent(in) :: comment !Optional comment to be written to the file.
-    character(len=2), dimension(:), intent(in) :: elements
-    real(8), dimension(natoms,3), intent(in) :: coordinates
-    integer :: i, j, ncells, count
-    ncells = natoms / size(elements)
-    open(1, file=file1, status='unknown')
-    open(2, file=file2, status='unknown')
-    write(1,*) natoms
-    write(1,*) 'Numbers of cells for x and y:  ', nx, ny
-    write(2,*) nx*ny*2
-    write(2,*) 'Cr positions for CrI3  with nx and ny respectively', nx, ny
-    count = 0 
-    do i=1, ncells
-        do j=1, size(elements)
-            count = count + 1
-            write(6, *) 'Atoms = ', count
-            if ( elements(j) =='Cr' ) then
-                write(2, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            end if
-            write(1, '(A2, 3(F16.6))') elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-            !write(6, *) count, elements(j), coordinates(count,1), coordinates(count,2), coordinates(count,3)
-        end do
-    end do
-    close(1)
-    close(2)
-end subroutine write_structures
-
-function xyz_to_array(file) result(coordinates)
-    implicit none
-    character(len=*), intent(in) :: file
-    integer :: natoms
-    real(8), dimension(:,:), allocatable :: coordinates
-    integer :: i
-    character(len=2) :: element
-    open(1, file=file, status='old')
-    read(1,*) natoms
-    read(1,*) ! Skip the comment line.
-    allocate(coordinates(natoms,3))
-    do i=1, natoms
-        read(1,*) element, coordinates(i,1), coordinates(i,2), coordinates(i,3)
-    end do
-    close(1)
-end function xyz_to_array
-
-
-
-    
-    ! This function calculates the Euclidean distance between two points (v1 and v2).
-function distance(v1, v2) result(dist)
-    implicit none
-    real(8), dimension(:), intent(in) :: v1, v2
-    real(8) :: dist
-    !dist = sqrt(sum((v1-v2)**2))
-    dist = sqrt(dot_product(v1-v2, v1-v2))
-end function distance
 
 function read_neighbors(file, Cr_atoms)  result(neighbors)
     implicit none
@@ -109,65 +48,6 @@ function read_neighbors(file, Cr_atoms)  result(neighbors)
 end function read_neighbors
 
 
-! This function finds the neighbors of atoms within a given distance (max_distance) and up to a maximum number (max_neighbors).
-function find_neighbors(vectors, max_distance, max_neighbors, vx, vy) result(neighbors)
-    implicit none
-    real(8), dimension(:,:), intent(in) :: vectors
-    real(8), dimension(3), intent(in) :: vx, vy !Lattice vectors for periodic boundary conditions 
-    integer, intent(in) :: max_neighbors
-    real(8), intent(in) :: max_distance
-    integer :: i, j, n, count, n1, n2
-    integer, dimension(size(vectors,1), max_neighbors) :: neighbors
-    real(8) :: dist ! Distance between two atoms
-    n = size(vectors,1)
-    open(15, file='CrI3neighbors.txt', status='unknown')
-    ! Loop through all atoms and find their neighbors within the specified distance.
-    do i = 1, n
-        count = 0
-        do j = 1, n
-            do n1 = -1, 1
-                do n2 = -1, 1
-                    ! Calculate the distance between the two atoms.
-                    dist = distance(vectors(i,:), vectors(j,:) + n1*vx + n2*vy)
-                    ! Check if the atoms are not the same and if their distance is less than the maximum allowed distance.
-                    if (i /= j .and. dist <  max_distance) then
-                        count = count + 1
-                        ! If the atom already has the maximum number of neighbors, exit the loop.
-                        if (count > max_neighbors) then !Probably not necessary
-                            exit
-                        end if
-                        ! Store the index of the neighboring atom.
-                        neighbors(i, count) = int(j)
-                    end if
-                end do
-            end do
-        end do
-        ! Print the neighbors of the atom to a file.
-        write(15,'(3(I7))') int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-        write(6, *) 'Neighbors of atom ', i, ' are ', int(neighbors(i,1)), int(neighbors(i,2)), int(neighbors(i,3))
-    end do
-    close(15)
-end function find_neighbors
-
-! This function generates the coordinates of the atoms in the structure.
-function generate_structure(basis, primitive, nx, ny) result(coordinates)
-    implicit none
-    real(8), dimension(:,:), intent(in) :: basis
-    real(8), dimension(2,3), intent(in) :: primitive
-    integer, intent(in) :: nx, ny
-    real(8), dimension(nx*ny*size(basis,1),3) :: coordinates
-    integer :: i, j, k, n, count
-    n = size(basis,1)
-    count = 0
-    do i = 1, nx
-        do j = 1, ny
-            do k = 1, size(basis,1)
-                count = count + 1
-                coordinates(count,:) = basis(k,:) + primitive(1,:)*REAL(i) + primitive(2,:)*REAL(j)
-            end do
-        end do
-    end do
-end function generate_structure
 
 
 function generate_spins(natoms, choice) result(spins)
@@ -179,12 +59,12 @@ function generate_spins(natoms, choice) result(spins)
     if (choice == 1) then
         !Each spin is a different randomly generated normal vector.
         do i = 1, natoms
-            spins(i,:) = random_normal_vector()
+            spins(i,:) = random_normal_vector(seed)
         end do
         
     else 
         !All the spins are the same randomly generated normal vector.
-        spin = random_normal_vector()
+        spin = initial_magnetization_vector(:)
         spins(:,1) = spin(1)
         spins(:,2) = spin(2)
         spins(:,3) = spin(3)
@@ -223,28 +103,15 @@ function calculate_initial_magnetization_vector(spins) result(magnetization_vect
     end function calculate_initial_magnetization_vector
 
 
-function calculate_spin_energy(spins, neighbors, index, J) result(energy)
-    real(8), intent(in) :: spins(:,:)
-    integer, intent(in), dimension(:,:) :: neighbors
-    integer, intent(in) :: index
-    real(8), intent(in) :: J
-    integer :: i
-    real(8) :: energy 
-    energy = 0.0d0 
-    do i = 1, size(neighbors,2)
-        energy = energy - 2 * J * dot_product(spins(index,:), spins(neighbors(index,i),:))
-    end do
-end function calculate_spin_energy
-
-
 function flip_ith_spin(spins, ith) result(new_spins)
     implicit none
     real(8), dimension(:,:), intent(inout) :: spins
     real(8), dimension(size(spins,1),3) :: new_spins
     integer, intent(in) :: ith
     new_spins = spins
-    new_spins(ith,:) = random_normal_vector()
+    new_spins(ith,:) = random_normal_vector(seed)
 end function flip_ith_spin
+
 
 
 function energy_change(old_system, new_system, neighbors, J, index) result(delta_E)
@@ -292,12 +159,12 @@ end function accept_change
 
 
 ! This subroutine simulates a Monte Carlo simulation of a system of atoms with spins.
-subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors) 
+subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors) 
     implicit none
     
     !Declare input variables
     integer, intent(in) :: mcs, CrAtoms, nx, ny
-    real(8), intent(in) :: T, J, H
+    real(8), intent(in) :: T, J
     real(8), intent(inout) :: spins(:,:)
     integer, intent(in), dimension(:,:) :: neighbors
     
@@ -309,8 +176,8 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
     
     
     open(12, file='data/stabilizer/'//output_file, status='unknown')
-    write(12,*) '#seed - mcs - temperature - CrAtoms - nx - ny - H'
-    write(12,*) '#', seed, mcs, T, CrAtoms, nx, ny, H
+    write(12,*) '#seed - mcs - temperature - nx - ny - initiai_magnetization_vector'
+    write(12,*) '#', seed, mcs, T, nx, ny, initial_magnetization_vector(:)
     write(12,*) '#Mcs', 'Energy', 'Magnetization'
     !close(12)
     !stop
@@ -324,7 +191,7 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
         !Loop over the number of atoms
         do k = 1, CrAtoms
             !Generate the index of a random spin to be flipped
-            spins_index = random_integer(1, CrAtoms)
+            spins_index = random_integer(1, CrAtoms, seed)
             
             
             !Store the old system and generate a new one with one spin flipped
@@ -347,6 +214,7 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
             current_magnetization = current_magnetization / CrAtoms
             if (k == 1) then 
                 write(12, '(I7 , F16.9, F16.9)') i, current_energy/Cr_atoms , current_magnetization
+                flush(12)
             end if
         end do
 
@@ -356,62 +224,6 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, H, spins, neighbors)
     
     print *, 'End of the simulation'
 end subroutine simulation
-
-
-
-
-function random_normal_vector() result(vector)
-    implicit none
-    real(8), dimension(3) :: vector
-    vector(1) = 2*ran2(seed)-1
-    vector(2) = 2*ran2(seed)-1
-    vector(3) = 2*ran2(seed)-1
-    vector = vector / sqrt(dot_product(vector, vector))
-end function random_normal_vector
-
-
-function random_integer(a, b) result(rand_int)
-    integer, intent(in) :: a, b
-    integer :: rand_int
-    real :: rand_real
-    ! Generate a random real number between 0 and 1 using RANDOM_NUMBER
-    !call RANDOM_NUMBER(rand_real)
-    rand_real = ran2(seed)
-    ! Scale the random number to be between a and b
-    rand_int = a + int(real(b - a + 1) * rand_real)
-end function random_integer
-
-
-DOUBLE PRECISION FUNCTION ran2(idum)
-  IMPLICIT NONE
-  INTEGER, PARAMETER :: K4B=selected_int_kind(9)
-  INTEGER(K4B), INTENT(INOUT) :: idum
-  !"Minimal" random number generator of Park and Miller combined with a 
-  !Marsaglia shift sequence. Returns a uniform random deviate between 0.0 and 
-  !1.0 (exclusive of the endpoint values). This fully portable, scalar 
-  !generator has the "traditional" (not Fortran 90) calling sequence with a 
-  !random deviate as the returned function value: call with idum a negative 
-  !integer to initialize; thereafter, do not alter idum except to reinitialize.
-  !The period of this generator is about 3.1� 10^18.
-  INTEGER(K4B), PARAMETER :: IA=16807,IM=2147483647,IQ=127773,IR=2836
-  REAL, SAVE :: am
-  INTEGER(K4B), SAVE :: ix=-1,iy=-1,k
-  if (idum <= 0 .or. iy < 0) then    !Initialize.
-     am=nearest(1.0,-1.0)/IM
-     iy=ior(ieor(888889999,abs(idum)),1)
-     ix=ieor(777755555,abs(idum))
-     idum=abs(idum)+1    !Set idum positive.
-  end if
-  ix=ieor(ix,ishft(ix,13))   !Marsaglia shift sequence with period 232 - 1.
-  ix=ieor(ix,ishft(ix,-17))
-  ix=ieor(ix,ishft(ix,5))
-  k=iy/IQ                         !Park-Miller sequence by Schrage's method,
-  iy=IA*(iy-k*IQ)-IR*k            !period 231 - 2.
-  if (iy < 0) iy=iy+IM
-  ran2=am*ior(iand(IM,ieor(ix,iy)),1)  !Combine the two generators with masking 
-END FUNCTION ran2                      !to ensure nonzero value.
-
-
 
 
 end program main

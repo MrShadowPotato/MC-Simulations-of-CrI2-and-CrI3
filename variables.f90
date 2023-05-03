@@ -12,7 +12,7 @@ module variables
     real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
     real(8), public :: kB = 8.617333262D-2
-    real(8), parameter :: exchange = 2.76*2
+    real(8), public :: exchangeCrI3, exchangeCrI2, exchange
     real(8), parameter :: anisotropy = 0.67 ! x2???
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
@@ -44,6 +44,8 @@ contains
         read(10,*) dummy, dummy, temp_iterator_file
         read(10,*) dummy, dummy, compound
         read(10,*) dummy, dummy, magnetization_direction
+        read(10,*) dummy, dummy, exchangeCrI3
+        read(10,*) dummy, dummy, exchangeCrI2
 
         
         ! Close the file
@@ -113,6 +115,7 @@ contains
             allocate(elements(8))
             elements(:) = elementsCrI3(:)
             neighbor_max_distance = 4.0d0
+            exchange = exchangeCrI3
 
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
@@ -124,6 +127,7 @@ contains
             allocate(elements(6))
             elements(:) = elementsCrI2(:)
             neighbor_max_distance = 4.0d0
+            exchange = exchangeCrI2
         else 
             write(6,*) "Error: Compound does not match available options."
             write(6,*) "Closing program..."

@@ -1,8 +1,9 @@
 import subprocess
 import time
+import numpy as np
 
 class Data:
-    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000, compound='CrI3',md='easy'):
+    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000, compound='CrI3',md='easy', J1=2.76*2, J2=-4.73):
         self.compound = compound
         self.seed = seed
         self.mcs = mcs
@@ -15,6 +16,8 @@ class Data:
         self.dT = dT
         self.idx = idx
         self.magnetization_direction = md
+        self.J_CrI3 = J1
+        self.J_CrI2 = J2
         self.path_simulation_data = self.path_simulation_data()
         self.path_temperature_data = self.path_temperature_data()
 
@@ -22,11 +25,14 @@ class Data:
         if self.spins_orientation == '1':
             return f'{self.compound}n{self.nx}t{self.temperature}m{self.mcs}o{self.spins_orientation}s{self.seed}.txt'
         else:
-            return f'{self.compound}n{self.nx}t{self.temperature}m{self.mcs}o{self.spins_orientation}{self.magnetization_direction}s{self.seed}.txt'
+            return f'{self.compound}n{self.nx}t{self.temperature}m{self.mcs}o{self.spins_orientation}md{self.magnetization_direction}s{self.seed}.txt'
     
     def path_temperature_data(self):
-        return f'{self.compound}n{self.nx}iT{self.iT}fT{self.fT}dT{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}s{self.seed}.txt'
-    
+        if self.compound == 'CrI3':
+            return f'{self.compound}n{self.nx}iT{self.iT}fT{self.fT}dT{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}md{self.magnetization_direction}s{self.seed}J{self.J_CrI3}.txt'
+        elif self.compound == 'CrI2':
+            return f'{self.compound}n{self.nx}iT{self.iT}fT{self.fT}dT{self.dT}m{self.mcs}i{self.idx}o{self.spins_orientation}md{self.magnetization_direction}s{self.seed}J{self.J_CrI2}.txt'
+
     def write_params(self):
         with open ('params.txt', 'w') as f:
             f.write(f'seed = {self.seed}\n')
@@ -44,7 +50,9 @@ class Data:
             f.write(f'index = {self.idx}\n')
             f.write(f'path_temperature_data = {self.path_temperature_data}\n')
             f.write(f'compound = {self.compound}\n')
-            f.write(f'magnetization_direction = {self.magnetization_direction}')
+            f.write(f'magnetization_direction = {self.magnetization_direction}\n')
+            f.write(f'J_CrI3 = {self.J_CrI3}\n')
+            f.write(f'J_CrI2 = {self.J_CrI2}\n')
 
 
 print('Please select a compound:')
@@ -57,12 +65,17 @@ else:
     print('Invalid input, exiting...')
     exit()
 
+
 initial_nxy = int(input('Enter the initial nx and ny (nx = ny): '))
 final_nxy = int(input('Enter the final nx and ny (nx = ny): '))
 step_n = int(input('Enter the step: '))
 
+initial_CrI3_J1 = float(input('Enter the initial J1 for CrI3: '))
+final_CrI3_J1 = float(input('Enter the final J1 for CrI3: '))
+step_CrI3_J1 = float(input('Enter the step for CrI3: '))
+CrI3_array = np.arange(initial_CrI3_J1, final_CrI3_J1 + step_CrI3_J1, step_CrI3_J1)
 
-#seeds = [-111, -222, -333, -444, -555]
+#seeds = [-111, -222, -333, -555, -666]
 seeds = [-111]
 print('Seeds: ', seeds)
 print('Enter 1 to run xgenerate')
@@ -130,17 +143,21 @@ elif choice == '2' or choice == '3':
             exit()    
 
     mcs = int(input('Enter the number of Monte Carlo steps:  '))      
+
+
 else:
     print('Invalid input, exiting...')
     exit()
 
 
-number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n)))
+number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n))) * len(CrI3_array)
 
 print('You are going to print the following values for N:')
 print(list(range(initial_nxy, final_nxy + 1, step_n)))
-print(' and you are going to print the following values for seeds:')
+print(' also you are going to print the following values for seeds:')
 print(seeds)
+print('and finally the following values for J1:')
+print(CrI3_array)
 print('That would call a total of ', number_of_simulations, ' simulations.')
 print('Simulations : ', number_of_simulations)
 print('Are you sure you want to continue?')
@@ -158,6 +175,7 @@ if confirmation == '1':
             print(f'Running for nxy = {nxy}...')
             for seed in seeds:
                 print(f'Running for seed = {seed}...')
+                
                 if choice == '2':   #Stabilizer
                     if spins_orientation == 1:
                         Data(seed=seed, mcs=mcs, temperature=temperature, nx=nxy, ny=nxy, spins_orientation=spins_orientation, compound=compound).write_params()
@@ -165,8 +183,12 @@ if confirmation == '1':
                         Data(seed=seed, mcs=mcs, temperature=temperature, nx=nxy, ny=nxy, spins_orientation=spins_orientation, compound=compound, md=magnetization_direction).write_params()
                     subprocess.run(f'nohup ./x{program} > ./logs/{program}/n{nxy}t{temperature}s{seed}.output &', shell=True)
                 elif choice == '3':  #Temperature
-                    Data(spins_orientation=spins_orientation, iT=iT, fT=fT, dT=dT, idx=idx, mcs=mcs, nx=nxy, ny=nxy, seed=seed, compound=compound, md=magnetization_direction).write_params()
-                    subprocess.run(f'nohup ./xtemp > ./logs/temperature/n{nxy}t{iT}-{fT}d{dT}s{seed}.output &', shell=True)
+                    for J in CrI3_array:
+                        print(f'Running for J = {J}...')
+                        Data(spins_orientation=spins_orientation, iT=iT, fT=fT, dT=dT, idx=idx, mcs=mcs, nx=nxy, ny=nxy, seed=seed, compound=compound, J1=J, md=magnetization_direction).write_params()
+                        subprocess.run(f'nohup ./xtemp > ./logs/temperature/n{nxy}t{iT}-{fT}d{dT}s{seed}J{J}.output &', shell=True)
+                    #Data(spins_orientation=spins_orientation, iT=iT, fT=fT, dT=dT, idx=idx, mcs=mcs, nx=nxy, ny=nxy, seed=seed, compound=compound, md=magnetization_direction).write_params()
+                    #subprocess.run(f'nohup ./xtemp > ./logs/temperature/n{nxy}t{iT}-{fT}d{dT}s{seed}.output &', shell=True)
                 time.sleep(0.1) 
                         
 else: 

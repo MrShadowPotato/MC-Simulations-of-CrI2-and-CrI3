@@ -22,15 +22,15 @@ program main
 
     
     call simulation(mcs, Cr_atoms, nx, ny, temperature, exchange, spins, neighbors)
-    print *, 'This is a mesagge to check that the program has finished.'
+    !print *, 'This is a mesagge to check that the program has finished.'
 
     call cpu_time(end_time)
     elapsed_time = end_time - start_time
 
-    open(unit=14, file='data/stabilizer/'//output_file, status="old", position='append', action="write")
-    write(14, *) 'This is the time it took to run the program: ', elapsed_time
-    close(14)
-    write(6, *) 'This is the time it took to run the program: ', elapsed_time
+    !open(unit=14, file='data/stabilizer/'//output_file, status="old", position='append', action="write")
+    !write(14, *) 'This is the time it took to run the program: ', elapsed_time
+    !close(14)
+    !write(6, *) 'This is the time it took to run the program: ', elapsed_time
 contains 
 
 
@@ -187,7 +187,6 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors)
     current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
 
     do i = 1, mcs
-        print *, 'Mcs: ', i
         !Loop over the number of atoms
         do k = 1, CrAtoms
             !Generate the index of a random spin to be flipped
@@ -214,7 +213,7 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors)
             current_magnetization = current_magnetization / CrAtoms
             if (k == 1) then 
                 write(12, '(I7 , F16.9, F16.9)') i, current_energy/Cr_atoms , current_magnetization
-                flush(12)
+                !flush(12)
             end if
         end do
 
@@ -222,7 +221,6 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors)
     end do
     close(12)
     
-    print *, 'End of the simulation'
 end subroutine simulation
 
 

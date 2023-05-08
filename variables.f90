@@ -1,19 +1,24 @@
 module variables
     implicit none
     character(len=1000) :: dummy, magnetization_direction
-    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound
+    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound, &
+    hLoop_file
     integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation, index_avg, max_neighbors
-    real(8), public :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance
+    real(8), public :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance, &
+    iH, dH
     real(8), dimension(2, 3) :: primitive, vlattice
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(:,:), allocatable :: basis
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
-    real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
+    real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2, H_vector !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
     real(8), public :: kB = 8.617333262D-2
     real(8), public :: exchangeCrI3, exchangeCrI2, exchange
     real(8), parameter :: anisotropy = 0.67 ! x2???
+    real(8), parameter :: g = 3.8
+    real(8), parameter :: h_bar = 6.582119569D-13
+    real(8), parameter :: muB = 5.7883818060D-2
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
     character(len=2), dimension(:), allocatable :: elements
@@ -46,6 +51,9 @@ contains
         read(10,*) dummy, dummy, magnetization_direction
         read(10,*) dummy, dummy, exchangeCrI3
         read(10,*) dummy, dummy, exchangeCrI2
+        read(10,*) dummy, dummy, iH
+        read(10,*) dummy, dummy, dH
+        read(10,*) dummy, dummy, hLoop_file
 
         
         ! Close the file
@@ -109,6 +117,7 @@ contains
             primitive = primitiveCrI3
             vlattice = vlatticeCrI3
             easy_vector = easy_vectorCrI3
+            H_vector = easy_vector!!!!
             allocate(basis(8,3))
             basis(:,:) = basis_CrI3(:,:)
             max_neighbors = 3
@@ -121,6 +130,7 @@ contains
             primitive = primitiveCrI2
             vlattice = vlatticeCrI2
             easy_vector = easy_vectorCrI2
+            H_vector = easy_vector!!!!!
             allocate(basis(6,3))
             basis(:,:) = basis_CrI2(:,:)
             max_neighbors = 2

@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class Data:
-    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000, compound='CrI3',md='easy', J1=2.76*2, J2=-4.73):
+    def __init__(self, seed = -111, mcs = 5000, temperature = 5, nx = 0, ny = 0, spins_orientation = 1, iT = 1, fT=100, dT=1, idx=1000, compound='CrI3',md='easy', J1=2.76*2, J2=-4.73, H=3, dH=0.1):
         self.compound = compound
         self.seed = seed
         self.mcs = mcs
@@ -18,6 +18,8 @@ class Data:
         self.magnetization_direction = md
         self.J_CrI3 = J1
         self.J_CrI2 = J2
+        self.iH = H
+        self.dH = dH
         self.path_simulation_data = self.path_simulation_data()
         self.path_temperature_data = self.path_temperature_data()
 
@@ -53,6 +55,8 @@ class Data:
             f.write(f'magnetization_direction = {self.magnetization_direction}\n')
             f.write(f'J_CrI3 = {self.J_CrI3}\n')
             f.write(f'J_CrI2 = {self.J_CrI2}\n')
+            f.write(f'initial_H = {self.iH}\n')
+            f.write(f'delta_H = {self.dH}\n')
 
 
 print('Please select a compound:')
@@ -70,10 +74,7 @@ initial_nxy = int(input('Enter the initial nx and ny (nx = ny): '))
 final_nxy = int(input('Enter the final nx and ny (nx = ny): '))
 step_n = int(input('Enter the step: '))
 
-initial_CrI3_J1 = float(input('Enter the initial J1 for CrI3: '))
-final_CrI3_J1 = float(input('Enter the final J1 for CrI3: '))
-step_CrI3_J1 = float(input('Enter the step for CrI3: '))
-CrI3_array = np.arange(initial_CrI3_J1, final_CrI3_J1 + step_CrI3_J1, step_CrI3_J1)
+
 
 #seeds = [-111, -222, -333, -555, -666]
 seeds = [-111]
@@ -112,6 +113,10 @@ elif choice == '2' or choice == '3':
         dT = int(input('Enter the temperature step:   '))
         idx = int(input('Enter the index averager:   '))
         spins_orientation = 2
+        initial_CrI3_J1 = float(input('Enter the initial J1 for CrI3: '))
+        final_CrI3_J1 = float(input('Enter the final J1 for CrI3: '))
+        step_CrI3_J1 = float(input('Enter the step for CrI3: '))
+        CrI3_array = np.arange(initial_CrI3_J1, final_CrI3_J1 + step_CrI3_J1, step_CrI3_J1)
 
     if spins_orientation == 1:
         print('You have chosen all random spins')
@@ -150,14 +155,17 @@ else:
     exit()
 
 
-number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n))) * len(CrI3_array)
+number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n)))
+if choice == '3':
+    number_of_simulations = len(seeds)*len(list(range(initial_nxy, final_nxy + 1, step_n))) * len(CrI3_array)
 
 print('You are going to print the following values for N:')
 print(list(range(initial_nxy, final_nxy + 1, step_n)))
 print(' also you are going to print the following values for seeds:')
 print(seeds)
-print('and finally the following values for J1:')
-print(CrI3_array)
+if choice == '3':
+    print('and finally the following values for J1:')
+    print(CrI3_array)
 print('That would call a total of ', number_of_simulations, ' simulations.')
 print('Simulations : ', number_of_simulations)
 print('Are you sure you want to continue?')

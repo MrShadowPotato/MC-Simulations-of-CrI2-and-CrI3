@@ -11,7 +11,13 @@ test*
 tmp*
 x*
 
+input
 
+data/
+logs/
+neighbors/
+Cr_coordinates/
+remote/
 structures/
 executable/
 temp_output/

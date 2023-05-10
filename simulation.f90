@@ -114,33 +114,23 @@ end function flip_ith_spin
 
 
 
-function energy_change(old_system, new_system, neighbors, J, index) result(delta_E)
-    !Calculates the energy change due to spin flip.
-    !Compares the energy of the old system with the energy of the new system.
-    !Only the energy of the spin that has been flipped is calculated.
-    implicit none 
-    real(8), intent(in), dimension(:,:) :: old_system, new_system
+function energy_change(old_spin, new_spin, neighbors, J, index) result(dE)
+    real(8), intent(in) :: old_spin(3), new_spin(3)
     integer, intent(in), dimension(:,:) :: neighbors
     real(8), intent(in) :: J
     integer, intent(in) :: index
-    integer :: i
-    real(8) :: original_energy, new_energy, delta_E
-    real(8) :: new_spin(3), original_spin(3)
+    real(8) :: ennew, enold, dE
 
-    original_energy = 0.0d0  
-    new_energy = 0.0d0
-    
-    original_spin = old_system(index,:)
-    new_spin = new_system(index,:)
-    
+    ennew = 0.0d0
+    enold = 0.0d0
+
     do i = 1, size(neighbors,2)
-        original_energy = original_energy - J * dot_product(original_spin, spins(neighbors(index,i),:))
-        new_energy = new_energy - J * dot_product(new_spin, spins(neighbors(index,i),:))
+        ennew = ennew - J * dot_product(new_spin, spins(neighbors(index,i),:))
+        enold = enold - J * dot_product(old_spin, spins(neighbors(index,i),:))
     end do
+    dE = (ennew - enold)
 
-    delta_E = (new_energy - original_energy)
 end function energy_change
-
  
 
 function accept_change(delta_E, t) result(accept)
@@ -172,7 +162,7 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors)
     integer :: i, k, spins_index
     real(8), dimension(CrAtoms, 3) :: old_system, new_system
     real(8) :: current_energy, current_magnetization, delta_E
-    real(8), dimension(3) :: current_magnetization_vector
+    real(8), dimension(3) :: current_magnetization_vector, old_spin, new_spin
     
     
     open(12, file='data/stabilizer/'//output_file, status='unknown')
@@ -194,26 +184,27 @@ subroutine simulation(mcs, CrAtoms, nx, ny, T, J, spins, neighbors)
             
             
             !Store the old system and generate a new one with one spin flipped
-            old_system = spins
-            new_system = flip_ith_spin(spins, spins_index)
+            old_spin = spins(spins_index,:)
+            new_spin = random_normal_vector(seed)
             
             !Calculate the energy and magnetization of the old and new system
             
-            delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
-            
+            delta_E = energy_change(old_spin, new_spin, neighbors, J, spins_index)
+
+
             !Decide wheter to accept the new system or not
             if (accept_change(delta_E, T)) then
                 !If the new system is accepted, update the spins and the total energy
                 spins = new_system
                 current_energy = current_energy + delta_E
                 current_magnetization_vector = current_magnetization_vector &
-                - old_system(spins_index,:) + new_system(spins_index,:)
+                - old_spin + new_spin
             end if
             current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
             current_magnetization = current_magnetization / CrAtoms
             if (k == 1) then 
                 write(12, '(I7 , F16.9, F16.9)') i, current_energy/Cr_atoms , current_magnetization
-                !flush(12)
+                flush(12)
             end if
         end do
 

@@ -110,37 +110,23 @@ function flip_ith_spin(spins, ith) result(new_spins)
 end function flip_ith_spin
 
 
-function energy_change(old_system, new_system, neighbors, J, index) result(delta_E)
-    !Calculates the energy change due to spin flip.
-    !Compares the energy of the old system with the energy of the new system.
-    !Only the energy of the spin that has been flipped is calculated.
-    implicit none 
-    real(8), intent(in), dimension(:,:) :: old_system, new_system
+function energy_change(old_spin, new_spin, neighbors, J, index) result(dE)
+    real(8), intent(in) :: old_spin(3), new_spin(3)
     integer, intent(in), dimension(:,:) :: neighbors
     real(8), intent(in) :: J
     integer, intent(in) :: index
-    integer :: i
-    real(8) :: original_energy, new_energy, delta_E
-    real(8) :: new_spin(3), original_spin(3)
+    real(8) :: ennew, enold, dE
 
-    original_energy = 0.0d0  
-    new_energy = 0.0d0
-    
-    original_spin = old_system(index,:)
-    new_spin = new_system(index,:)
-    
+    ennew = 0.0d0
+    enold = 0.0d0
+
     do i = 1, size(neighbors,2)
-        original_energy = original_energy - J * dot_product(original_spin, spins(neighbors(index,i),:))
-        new_energy = new_energy - J * dot_product(new_spin, spins(neighbors(index,i),:))
+        ennew = ennew - J * dot_product(new_spin, spins(neighbors(index,i),:))
+        enold = enold - J * dot_product(old_spin, spins(neighbors(index,i),:))
     end do
+    dE = (ennew - enold)
 
-    delta_E = (new_energy - original_energy)
 end function energy_change
-
-
-!function energy_change2(old_spin, new_spin, system, neighbors, J, index) result(delta_E)
- 
-!end function energy_change2
 
 
 function accept_change(delta_E, t) result(accept)
@@ -171,12 +157,11 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
     
     !Declare local variables
     integer :: i, k, spins_index
-    real(8), dimension(CrAtoms, 3) :: old_system, new_system
     real(8) :: current_energy, current_magnetization, delta_E, T, &
     energy_sum, magnetization_sum, energy_avg, magnetization_avg, &
     sqrd_energy_sum, sqrd_magnetization_sum, sqrd_energy_avg, sqrd_magnetization_avg, &
     beta, Cv, Chi
-    real(8), dimension(3) :: current_magnetization_vector
+    real(8), dimension(3) :: current_magnetization_vector, old_spin, new_spin
     
     current_energy = calculate_initial_energy(spins, neighbors, J)
     current_magnetization_vector = calculate_initial_magnetization_vector(spins)
@@ -187,7 +172,9 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
     write(12,*) '#seed - mcs - indavg - iT - fT - dT - CrAtoms - nx - ny - H'
     write(12,*) '#', seed, mcs, index_avg, initial_temperature, &
     final_temperature, temperature_step, CrAtoms, nx, ny, H
-    write(12,*) '#T', 'Energy', 'Magnetization', 'Mx', 'My', 'Mz', 'Cv', 'Chi'
+    write(12,97) 
+    97 format('#      T',7x,'|mag|',6x,'magx',6x,'magy',6x,'magz',&
+        7x,'ener',3x,'Cv',8x,'suscep') 
     flush(12)
     do while (T < final_temperature)
         
@@ -199,21 +186,21 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
                 spins_index = random_integer(1, CrAtoms, seed)
                 
                 
-                !Store the old system and generate a new one with one spin flipped
-                old_system = spins
-                new_system = flip_ith_spin(spins, spins_index)
-                
+                !Store the old spin and generate a new one.
+                old_spin = spins(spins_index,:)
+                new_spin = random_normal_vector(seed)
+
                 !Calculate the energy and magnetization of the old and new system
                 
-                delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
-                
+                delta_E = energy_change(old_spin, new_spin, neighbors, J, spins_index)
+
                 !Decide wheter to accept the new system or not
                 if (accept_change(delta_E, T)) then
                     !If the new system is accepted, update the spins and the total energy
-                    spins = new_system
+                    spins(spins_index,:) = new_spin
                     current_energy = current_energy + delta_E
                     current_magnetization_vector = current_magnetization_vector &
-                    - old_system(spins_index,:) + new_system(spins_index,:)
+                    - old_spin(:) + new_spin(:)
                 end if
                 current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
                 current_magnetization = current_magnetization / CrAtoms
@@ -231,21 +218,20 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
                 spins_index = random_integer(1, CrAtoms, seed)
                 
                 
-                !Store the old system and generate a new one with one spin flipped
-                old_system = spins
-                new_system = flip_ith_spin(spins, spins_index)
+                !Store the old spin and generate a new one.
+                old_spin = spins(spins_index,:)
+                new_spin = random_normal_vector(seed)
                 
                 !Calculate the energy and magnetization of the old and new system
                 
-                delta_E = energy_change(old_system, new_system, neighbors, J, spins_index)
-                
+                delta_E = energy_change(old_spin, new_spin, neighbors, J, spins_index)
                 !Decide wheter to accept the new system or not
                 if (accept_change(delta_E, T)) then
                     !If the new system is accepted, update the spins and the total energy
-                    spins = new_system
+                    spins(spins_index,:) = new_spin 
                     current_energy = current_energy + delta_E
                     current_magnetization_vector = current_magnetization_vector &
-                    - old_system(spins_index,:) + new_system(spins_index,:)
+                    - old_spin(:) + new_spin(:)
                 end if
                 current_magnetization = sqrt(dot_product(current_magnetization_vector, current_magnetization_vector))
                 current_magnetization = current_magnetization / CrAtoms
@@ -261,9 +247,10 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
         sqrd_magnetization_avg = sqrd_magnetization_sum / index_avg
         beta = 1 / T*kB
        
-        Cv = kB * beta**2 * (sqrd_energy_avg - energy_avg**2)/(Cr_atoms**2) 
-        Chi = beta * (sqrd_magnetization_avg - magnetization_avg**2) 
-        write(12,*) T, energy_avg/Cr_atoms, magnetization_avg, current_magnetization_vector(:)/Cr_atoms, Cv, Chi
+        Cv = beta**2 * (sqrd_energy_avg - energy_avg**2)/(Cr_atoms**2) * kB
+        Chi =  (sqrd_magnetization_avg - magnetization_avg**2) * beta
+        write(12,34) T, magnetization_avg, current_magnetization_vector(:)/Cr_atoms, energy_avg/Cr_atoms, Cv, Chi
+        34 format(F12.8,4(1x,F9.6),1x,F14.8,1x,E16.9,1x,E16.9)
         flush(12)
         
         T = T + temperature_step
@@ -271,6 +258,7 @@ subroutine temperature_sim(mcs, index_avg, CrAtoms, nx, ny, initial_temperature,
     close(12)
     print *, 'End of the temperature_sim'
 end subroutine temperature_sim
+
 
 
 

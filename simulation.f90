@@ -103,17 +103,6 @@ function calculate_initial_magnetization_vector(spins) result(magnetization_vect
     end function calculate_initial_magnetization_vector
 
 
-function flip_ith_spin(spins, ith) result(new_spins)
-    implicit none
-    real(8), dimension(:,:), intent(inout) :: spins
-    real(8), dimension(size(spins,1),3) :: new_spins
-    integer, intent(in) :: ith
-    new_spins = spins
-    new_spins(ith,:) = random_normal_vector(seed)
-end function flip_ith_spin
-
-
-
 function energy_change(old_spin, new_spin, neighbors, J, index) result(dE)
     real(8), intent(in) :: old_spin(3), new_spin(3)
     integer, intent(in), dimension(:,:) :: neighbors

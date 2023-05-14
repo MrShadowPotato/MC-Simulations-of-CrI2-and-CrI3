@@ -1,24 +1,30 @@
-module variables
+module read_input 
+    use constants
     implicit none
     character(len=1000) :: dummy, magnetization_direction
     character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound, &
     hLoop_file
-    integer, public :: seed, mcs, nx, ny, Cr_atoms, spins_orientation, index_avg, max_neighbors
-    real(8), public :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance, &
+    !integer :: seed
+    integer :: mcs
+    integer :: nx, ny
+    integer :: spins_orientation
+    integer :: index_avg
+    integer :: max_neighbors
+    real(8) :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance, &
     iH, dH
     real(8), dimension(2, 3) :: primitive, vlattice
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(:,:), allocatable :: basis
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
-    real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2, H_vector !Easy axis vector.
+    real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
-    real(8), public :: kB = 8.617333262D-2
+    !real(8), public :: kB = 8.617333262D-2
     real(8), public :: exchangeCrI3, exchangeCrI2, exchange
-    real(8), parameter :: anisotropy = 0.67 ! x2???
-    real(8), parameter :: g = 3.8
-    real(8), parameter :: h_bar = 6.582119569D-13
-    real(8), parameter :: muB = 5.7883818060D-2
+    !real(8), parameter :: anisotropy = 0.67 ! x2???
+    !real(8), parameter :: g = 3.8
+    !real(8), parameter :: h_bar = 6.582119569D-13
+    !real(8), parameter :: muB = 5.7883818060D-2
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
     character(len=2), dimension(:), allocatable :: elements
@@ -29,7 +35,7 @@ contains
         ! Open the file
         character(len=100) :: filename
         integer :: status
-        filename = "params.txt"
+        filename = "../params.txt"
         open(unit=10, file=filename, status="old", action="read", iostat=status)
         
         ! Read the parameters
@@ -54,6 +60,7 @@ contains
         read(10,*) dummy, dummy, iH
         read(10,*) dummy, dummy, dH
         read(10,*) dummy, dummy, hLoop_file
+        read(10,*) dummy, dummy, g
 
         
         ! Close the file
@@ -124,7 +131,7 @@ contains
             allocate(elements(8))
             elements(:) = elementsCrI3(:)
             neighbor_max_distance = 4.0d0
-            exchange = exchangeCrI3
+            J = exchangeCrI3
 
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
@@ -137,7 +144,7 @@ contains
             allocate(elements(6))
             elements(:) = elementsCrI2(:)
             neighbor_max_distance = 4.0d0
-            exchange = exchangeCrI2
+            J = exchangeCrI2
         else 
             write(6,*) "Error: Compound does not match available options."
             write(6,*) "Closing program..."
@@ -174,4 +181,4 @@ contains
     
 
     
-end module variables
+end module read_input

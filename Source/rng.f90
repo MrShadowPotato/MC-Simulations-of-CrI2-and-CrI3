@@ -15,15 +15,29 @@ function random_integer(a, b, seed) result(rand_int)
     rand_int = a + int(real(b - a + 1) * rand_real)
 end function random_integer
 
-function random_normal_vector(seed) result(vector)
+function random_normal_vector(seed) result(sxx)
     implicit none
     integer, intent(inout) :: seed
-    real(8), dimension(3) :: vector
-    vector(1) = 2*ran2(seed)-1
-    vector(2) = 2*ran2(seed)-1
-    vector(3) = 2*ran2(seed)-1
-    vector = vector / sqrt(dot_product(vector, vector))
+    !real(8), dimension(3) :: vector
+    !vector(1) = 2*ran2(seed)-1
+    !vector(2) = 2*ran2(seed)-1
+    !vector(3) = 2*ran2(seed)-1
+    !vector = vector / sqrt(dot_product(vector, vector))
+    real(8) :: ransq, ranl, ranp, ranh, sxx(3)
+    
+
+    ransq=2.
+     do while (ransq.ge.1)
+        ranl=1.-2.*ran2(seed)
+        ranp=1.-2.*ran2(seed)
+        ransq=ranl*ranl+ranp*ranp
+     enddo
+     ranh=2.*sqrt(1.-ransq)
+     sxx(1)=ranl*ranh
+     sxx(2)=ranp*ranh
+     sxx(3)=(1-2.d0*ransq)
 end function random_normal_vector
+
 
 DOUBLE PRECISION FUNCTION ran2(idum)
   IMPLICIT NONE

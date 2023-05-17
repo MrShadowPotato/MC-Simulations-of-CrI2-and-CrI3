@@ -25,27 +25,27 @@ program tLoop
     mag_vec = calculate_initial_magnetization_vector(spins)
     write(6, *) "Initial energy: ", system_energy/Cr_atoms
     write(6, *) "Initial magnetization: ", mag_vec(:)/Cr_atoms
-    open(12, file='../data/tLoop/'//output_file, status='unknown')
+    open(12, file='../data/tLoop/t'//output_file, status='unknown')
 
     
     !Write parameters to screen
     open(13, file='../data/tLoop/z'//output_file, status='unknown') 
     write(13, 50) compound, seed!; write(13,*)
-    50 format(/,' compound= ', A4,'    seed= ', I7 /)
+    50 format(' compound= ', A4,'    seed= ', I7 )
     write(13, 51) iT, fT, dT!; write(13,*)
-    51 format(/,' iT= ', F7.1,'    fT= ', F7.1, '    dT= ', F7.1  /)  
+    51 format(' iT= ', F7.1,'    fT= ', F7.1, '    dT= ', F7.1  )  
     write(13, 53) J, K, H!; write(13,*)
-    53 format(/,' J= ', F8.3,'    K= ', F8.3, '    H= ', F8.3  /)
+    53 format(' J= ', F8.3,'    K= ', F8.3, '    H= ', F8.3  )
     write(13, 52) mcs, neq!; write(13,*)
-    52 format(/,' mcs= ', I10,'    neq= ', I10 /)
+    52 format(' mcs= ', I10,'    neq= ', I10 )
     write(13, 54) Cr_atoms, nx, ny!; write(13,*)
-    54 format(/,' Cr_atoms= ', I10,'    nx= ', I5, '    ny= ', I5  /)
+    54 format(' Cr_atoms= ', I10,'    nx= ', I5, '    ny= ', I5  )
     write(13, 55) spins_orientation, magnetization_direction!; write(13,*)
-    55 format(/,' spins_orientation= ', I2,'    magnetization_direction= ', A13  /)
+    55 format(' spins_orientation= ', I2,'    magnetization_direction= ', A13  )
     write(13, 56) mag_vec(:)/Cr_atoms!; write(13,*)
-    56 format(/,' initial_magnetization_vector= ', 3(XF8.5)  /)
+    56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector!; write(13,*)
-    57 format(/,' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  /)
+    57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
     flush(13)
 
     do while (T < fT)

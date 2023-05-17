@@ -2,16 +2,14 @@ module read_input
     use constants
     implicit none
     character(len=1000) :: dummy, magnetization_direction
-    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, compound, &
+    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, &
     hLoop_file
-    !integer :: seed
     integer :: mcs
-    integer :: nx, ny
+    integer :: neq
     integer :: spins_orientation
     integer :: index_avg
     integer :: max_neighbors
-    real(8) :: temperature, initial_temperature, final_temperature, temperature_step, neighbor_max_distance, &
-    iH, dH
+    real(8) :: neighbor_max_distance
     real(8), dimension(2, 3) :: primitive, vlattice
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(:,:), allocatable :: basis
@@ -19,12 +17,8 @@ module read_input
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
     real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
-    !real(8), public :: kB = 8.617333262D-2
     real(8), public :: exchangeCrI3, exchangeCrI2, exchange
-    !real(8), parameter :: anisotropy = 0.67 ! x2???
-    !real(8), parameter :: g = 3.8
-    !real(8), parameter :: h_bar = 6.582119569D-13
-    !real(8), parameter :: muB = 5.7883818060D-2
+
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
     character(len=2), dimension(:), allocatable :: elements
@@ -35,32 +29,43 @@ contains
         ! Open the file
         character(len=100) :: filename
         integer :: status
-        filename = "../params.txt"
+        filename = "input"
         open(unit=10, file=filename, status="old", action="read", iostat=status)
         
         ! Read the parameters
-        read(10,*) dummy, dummy, seed
-        read(10,*) dummy, dummy, mcs
-        read(10,*) dummy, dummy, temperature
-        read(10,*) dummy, dummy, nx
-        read(10,*) dummy, dummy, ny
-        read(10,*) dummy, dummy, spins_orientation
-        read(10,*) dummy, dummy, output_file
-        read(10,*) dummy, dummy, Cr_xyz
-        read(10,*) dummy, dummy, Cr_neighbors
-        read(10,*) dummy, dummy, initial_temperature
-        read(10,*) dummy, dummy, final_temperature
-        read(10,*) dummy, dummy, temperature_step
-        read(10,*) dummy, dummy, index_avg
-        read(10,*) dummy, dummy, temp_iterator_file
-        read(10,*) dummy, dummy, compound
-        read(10,*) dummy, dummy, magnetization_direction
-        read(10,*) dummy, dummy, exchangeCrI3
-        read(10,*) dummy, dummy, exchangeCrI2
-        read(10,*) dummy, dummy, iH
-        read(10,*) dummy, dummy, dH
-        read(10,*) dummy, dummy, hLoop_file
-        read(10,*) dummy, dummy, g
+
+        !Name of the output file
+        read(10,*) 
+        read(10,*) output_file
+        !System parameters
+        read(10,*) 
+        read(10,*) dummy, nx
+        read(10,*) dummy, ny
+        read(10,*) dummy, compound 
+        read(10,*) dummy, J
+        read(10,*) dummy, K
+        read(10,*) dummy, iH
+        read(10,*) dummy, iT
+        read(10,*) dummy, g
+        !Montecarlo parameters
+        read(10,*)
+        read(10,*) dummy, mcs
+        read(10,*) dummy, neq
+        read(10,*) dummy, seed
+        !Initial spin config
+        read(10,*) 
+        read(10,*) dummy, spins_orientation
+        read(10,*) dummy, magnetization_direction
+        !Parameters for tLoop
+        read(10,*) ; read(10,*) 
+        read(10,*) dummy, fT
+        read(10,*) dummy, dT
+        !Parameters for hLoop
+        read(10,*) dummy
+        read(10,*) dummy, dH
+
+
+
 
         
         ! Close the file
@@ -131,7 +136,7 @@ contains
             allocate(elements(8))
             elements(:) = elementsCrI3(:)
             neighbor_max_distance = 4.0d0
-            J = exchangeCrI3
+            
 
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
@@ -144,7 +149,7 @@ contains
             allocate(elements(6))
             elements(:) = elementsCrI2(:)
             neighbor_max_distance = 4.0d0
-            J = exchangeCrI2
+            
         else 
             write(6,*) "Error: Compound does not match available options."
             write(6,*) "Closing program..."

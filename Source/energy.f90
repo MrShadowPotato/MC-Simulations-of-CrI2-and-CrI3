@@ -35,7 +35,6 @@ subroutine energy_change(old_spin, new_spin, index, delta_E)
     call zeeman_energy(new_spin, new_energy(3))
     !delta_E = old_energy(1) + old_energy(2) + old_energy(3) - new_energy(1) - new_energy(2) - new_energy(3)
     delta_E = sum(new_energy) - sum(old_energy)
-
 end subroutine energy_change
 
 
@@ -96,7 +95,7 @@ subroutine zeeman_energy(spin, energy)
     energy = 0.0d0
 
     !Zeeman energy
-    energy = energy - g * muB * H * dot_product(spin(:), H_vector(:)) !/ h_bar
+    energy = energy - g * H * dot_product(spin(:), H_vector(:)) ! * muB / h_bar
 
 end subroutine zeeman_energy
 

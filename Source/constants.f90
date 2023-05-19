@@ -4,8 +4,8 @@ module constants
     real(8), parameter :: muB = 5.788381756d-2 !meV/T
     real(8), parameter :: kB = 8.617333262D-2 !meV/K  
 
-    character(100), save :: compound
-    integer, save :: nx, ny, nz, Cr_atoms  
+    character(4), save :: compound
+    integer, save :: nx, ny, nz, Cr_atoms, Cr_per_cell
     integer, save :: seed
     real(8), save :: system_energy
     integer, save, allocatable :: neighbors(:,:)

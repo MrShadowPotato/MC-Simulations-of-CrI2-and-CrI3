@@ -2,14 +2,12 @@ module read_input
     use constants
     implicit none
     character(len=1000) :: dummy, magnetization_direction
-    character(len=100), public :: output_file, Cr_xyz, Cr_neighbors, temp_iterator_file, &
-    hLoop_file
+    character(len=100), public :: output_file
     integer :: mcs
     integer :: neq
     integer :: spins_orientation
-    integer :: index_avg
     integer :: max_neighbors
-    real(8) :: neighbor_max_distance
+    real(8) :: neighbor_max_distance, neighbor_min_distance
     real(8), dimension(2, 3) :: primitive, vlattice
     real(8), dimension(2, 3) :: primitiveCrI3, primitiveCrI2, vlatticeCrI3, vlatticeCrI2
     real(8), dimension(:,:), allocatable :: basis
@@ -17,7 +15,6 @@ module read_input
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
     real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
-    real(8), public :: exchangeCrI3, exchangeCrI2, exchange
 
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
     character(len=2), dimension(6) :: elementsCrI2 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I '/)
@@ -27,10 +24,8 @@ contains
 
     subroutine read_parameters()
         ! Open the file
-        character(len=100) :: filename
         integer :: status
-        filename = "input"
-        open(unit=10, file=filename, status="old", action="read", iostat=status)
+        open(unit=10, file='input', status="old", action="read", iostat=status)
         
         ! Read the parameters
 
@@ -138,7 +133,9 @@ contains
             max_neighbors = 3
             allocate(elements(8))
             elements(:) = elementsCrI3(:)
+            neighbor_min_distance = 0.0d0
             neighbor_max_distance = 4.0d0
+            Cr_per_cell = 2
             
 
         else if (compound == 'CrI2') then
@@ -148,10 +145,12 @@ contains
             H_vector = easy_vector!!!!!
             allocate(basis(6,3))
             basis(:,:) = basis_CrI2(:,:)
-            max_neighbors = 2
+            max_neighbors = 4
             allocate(elements(6))
             elements(:) = elementsCrI2(:)
-            neighbor_max_distance = 4.0d0
+            neighbor_min_distance = 4.0d0
+            neighbor_max_distance = 4.5d0
+            Cr_per_cell = 2
             
         else 
             write(6,*) "Error: Compound does not match available options."

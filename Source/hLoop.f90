@@ -43,8 +43,8 @@ program hLoop
     56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector
     57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
-    write(13, 58) dS
-    58 format(' dS= ', F3.1  )
+    write(13, 59) dS
+    59 format(' dS= ', F3.1  )
     flush(13)
 
 

@@ -14,6 +14,7 @@ iH = 0
 dH = 0.1
 mcs = 5000
 neq = 5000
+dS = 0.9
 
 
 
@@ -47,20 +48,86 @@ if use_k == 'y':
 print('k = ', k)
 
 
+
+iT = float(input('Enter the iT (T): '))
+if program == 't':
+    dT = float(input('Enter the dT: '))
+    fT = float(input('Enter the fT: '))
+iH = float(input('Enter the iH (H): '))
+if program == 'h':
+    dH = float(input('Enter the dH: '))
+
+
 initial_n = int(input('Enter the initial nx and ny (nx = ny): '))
 final_n = int(input('Enter the final nx and ny (nx = ny): '))
 step_n = int(input('Enter the step: '))
 
 mcs = int(input('Enter the number of mcs: '))
+if program == 'h' or program =='t':
+    neq = int(input('Enter the number of equilibration steps: '))
+    order = 2
+elif program == 's':
+    print('Enter (1) for all random')
+    print('Enter (2) for all the same')
+    order = int(input('Enter the spin order: '))
 
 
-def output_file(program, iseed, n, ):
-    if program == 's':
+if order == 1:
+    print('You have chosen all random spins')
+elif order == 2:
+    print('\n'*2,'*'*20,'\n', 'Now choose the direction for initial magnetization: ')
+    print('For Easy axis direction press\n--------> [1]\n')
+    print('For Reversed Easy axis direction press\n--------> [2]\n')
+    print('For x (p1) axis direction press\n--------> [3]\n')
+    print('For y (p2) axis direction press\n--------> [4]\n')
+    print('For xy plane (p1 + p2) direction press\n--------> [5]\n')
+    print('For 45deg between xy plance and easy axis direction press\n--------> [6]\n')
+
+    magnetization_choice = input()
+
+    if magnetization_choice == '1':
+        magnetization_direction = 'easy'
+    elif magnetization_choice == '2':
+        magnetization_direction = 'reversed_easy'
+    elif magnetization_choice == '3':
+        magnetization_direction = 'p1'
+    elif magnetization_choice == '4':
+        magnetization_direction = 'p2'
+    elif magnetization_choice == '5':
+        magnetization_direction = 'p1_p2plane'
+    elif magnetization_choice == '6':
+        magnetization_direction = '45deg'
+    else:
+        print('Invalid input, exiting...')
+        exit()    
+else :
+    print('Invalid input, exiting...')
+    exit()
+
+
+
+print('For hLoop and tLoop dS equal to 0.2 and 0.9 respectively is recommended.')
+dS = input('Enter the dS (0,1] : ')
+
+
+
+print('Want to enter a custom output file name?')
+print('Enter (y) for yes or else for no')
+name_choice = input('Enter your choice: ')
+if name_choice == 'y':
+    output_file_name = input('Enter the output file name: ')
+
+
+def output_file(program, iseed, n):
+    if name_choice == 'y':
+        return f'{compound}n{n}{output_file_name}s{iseed + 1}' 
+    elif program == 's':
         return f'{compound}n{n}t{iT}o{order}md{mag_dir}k{k}H{iH}s{iseed + 1}'
     elif program == 't':
         return f'{compound}n{n}dT{dT}o{order}md{mag_dir}k{k}H{iH}s{iseed + 1}'
     elif program == 'h':
         return f'{compound}n{n}dH{dH}o{order}md{mag_dir}k{k}t{iT}s{iseed + 1}'
+    
 
 
 def write_input(program, iseed, n):
@@ -90,7 +157,8 @@ def write_input(program, iseed, n):
         f.write(f'dT= {dT}\n')
         f.write('Data for hLoop \n')
         f.write(f'dH= {dH}\n')
-
+        f.write('**** Spin multiplier ****\n')
+        f.write(f'dS= {dS}')
 
 def executable(program):
     if program == 's':

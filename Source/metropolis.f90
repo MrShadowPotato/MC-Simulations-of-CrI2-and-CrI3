@@ -17,8 +17,9 @@ subroutine metropolis_rng
     do i = 1, Cr_atoms
         index_spin = random_integer(1, Cr_atoms, seed)
         old_spin = spins(index_spin, :)
-        new_spin = random_normal_vector(seed)
-        
+        new_spin = old_spin + random_normal_vector(seed)*dS
+        new_spin = new_spin / sqrt(dot_product(new_spin, new_spin))
+
         call energy_change(old_spin, new_spin, index_spin, delta_E)
 
 

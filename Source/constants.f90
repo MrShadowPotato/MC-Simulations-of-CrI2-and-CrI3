@@ -11,7 +11,7 @@ module constants
     integer, save, allocatable :: neighbors(:,:)
     real(8), save, allocatable :: spins(:,:)
     real(8), save :: J, K, anisotropy, H, g, T
-    real(8), save :: iT, fT, dT, iH, dH
+    real(8), save :: iT, fT, dT, iH, dH, dS
     real(8), save :: anisotropy_vector(3), H_vector(3), mag_vec(3)
     !real(8), save :: avg_energy, avg_mag, avg_energy2, avg_mag2
 

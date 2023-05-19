@@ -61,8 +61,11 @@ contains
         read(10,*) dummy, fT
         read(10,*) dummy, dT
         !Parameters for hLoop
-        read(10,*) dummy
+        read(10,*) 
         read(10,*) dummy, dH
+        !New spin multiplier
+        read(10,*) 
+        read(10,*) dummy, dS
 
 
 

@@ -29,7 +29,7 @@ program tLoop
 
     
     !Write parameters to screen
-    open(13, file='../data/tLoop/z'//output_file, status='unknown') 
+    open(13, file='../data/tLoop/zt'//output_file, status='unknown') 
     write(13, 50) compound, seed!; write(13,*)
     50 format(' compound= ', A4,'    seed= ', I7 )
     write(13, 51) iT, fT, dT!; write(13,*)
@@ -46,6 +46,8 @@ program tLoop
     56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector!; write(13,*)
     57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
+    write(13, 58) dS
+    58 format(' dS= ', F3.1  )
     flush(13)
 
     do while (T < fT)

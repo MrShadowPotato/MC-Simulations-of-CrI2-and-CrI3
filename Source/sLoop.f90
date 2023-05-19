@@ -46,6 +46,8 @@ program sLoop
     56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector!; write(13,*)
     57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
+    write(13, 58) dS
+    58 format(' dS= ', F3.1  )
     flush(13)
 
     do i = 1, mcs

@@ -5,12 +5,10 @@ program sLoop
     implicit none
 
     real(8) :: start_time, end_time, time_elapsed
-    real(8) :: beta, Cv, Chi
-    real(8) :: avg_energy, avg_mag, avg_energy2, avg_mag2
-    real(8) :: avg_mag_vec(3)
-    integer :: i
-
-
+    integer :: i, i2, index
+    real(8), allocatable, dimension(:,:)  :: spins_ma, spins_mb
+    real(8) :: Ma, Mb, Ms, Ma_vec(3), Mb_vec(3), Ms_vec(3)
+    
 
 
     call cpu_time(start_time)
@@ -18,7 +16,31 @@ program sLoop
 
 
     neighbors = read_neighbors(Cr_atoms)
-    spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
+    if (compound == 'CrI3') then 
+        spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
+    else
+        spins_ma = generate_spins(Cr_atoms/2, spins_orientation, initial_magnetization_vector(:))
+        spins_mb = generate_spins(Cr_atoms/2, spins_orientation, -1*initial_magnetization_vector(:))
+        allocate(spins(Cr_atoms,3))
+        do i = 1, Cr_atoms/2
+            index = 2*i - 1
+            spins(index,:) = spins_ma(i,:)
+            Ma_vec = Ma_vec + spins_ma(i,:)
+            index = 2*i
+            spins(index,:) = spins_mb(i,:)
+            Mb_vec = Mb_vec + spins_mb(i,:)
+            
+        end do
+        Ma_vec = Ma_vec/Cr_atoms*2
+        Mb_vec = Mb_vec/Cr_atoms*2
+        Ms_vec = (Ma_vec/2 - Mb_vec/2)
+        write(6, *)'Ma:  ', sqrt(dot_product(Ma_vec, Ma_vec))!/Cr_atoms/2
+        write(6, *)'Mb:  ', sqrt(dot_product(Mb_vec, Mb_vec))!/Cr_atoms/2
+        write(6, *)'Ms:  ', sqrt(dot_product(Ms_vec, Ms_vec))!/Cr_atoms
+        
+    end if
+    
+
     T = iT
     H = iH
     call calculate_system_energy
@@ -50,11 +72,42 @@ program sLoop
     58 format(' dS= ', F3.1  )
     flush(13)
 
+    if (compound == 'CrI3') then
+        write(12, 37) 'MCS', 'M', 'E', 'Mx', 'My', 'Mz'
+        37 format(A10, 1x, 5(A14, 1x))
+
+    else 
+        write(12, 35) 'MCS', 'M', 'Ms', 'Ma', 'Mb', 'E'
+        35 format(A10, 1x, 5(A14, 1x)) 
+    end if 
+
+
     do i = 1, mcs
         call metropolis_rng
-        write(12,34) i, sqrt(dot_product(mag_vec, mag_vec))/Cr_atoms, system_energy/Cr_atoms, &
-        mag_vec(:)/Cr_atoms 
-        34 format(I10,1x,F14.8,1x,F14.8,3(1x,F9.6))
+        if (compound == 'CrI3') then 
+            write(12,34) i, sqrt(dot_product(mag_vec, mag_vec))/Cr_atoms, system_energy/Cr_atoms, &
+            mag_vec(:)/Cr_atoms 
+            34 format(I10,1x,F14.8,1x,F14.8,3(1x,F14.6))
+        else 
+            do i2 = 1, Cr_atoms/2
+                index = 2*i2 - 1
+                spins_ma(i2,:) = spins(index,:) 
+                Ma_vec = Ma_vec + spins_ma(i2,:)
+                index = 2*i2
+                spins_mb(i2,:) = spins(index,:) 
+                Mb_vec = Mb_vec + spins_mb(i2,:)
+            end do
+            Ma_vec = Ma_vec/Cr_atoms*2
+            Mb_vec = Mb_vec/Cr_atoms*2
+            Ms_vec = (Ma_vec/2 - Mb_vec/2)
+            Ma = sqrt(dot_product(Ma_vec, Ma_vec))
+            Mb = sqrt(dot_product(Mb_vec, Mb_vec))
+            Ms = sqrt(dot_product(Ms_vec, Ms_vec))
+            
+            write(12,36) i, sqrt(dot_product(mag_vec, mag_vec))/Cr_atoms, Ms, Ma, Mb, system_energy/Cr_atoms 
+            36 format(I10, 1x, 4(F14.8, 1x), F14.8)
+        end if 
+
         flush(12)
     end do
 

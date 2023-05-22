@@ -76,9 +76,9 @@ program tLoop
     flush(13)
 
     if (compound == 'CrI3') then
-        write(12, 77) "T", "M", "Mx", "My", "Mz", "E", "Cv", "Chi"
+        write(12, 77) "#T", "M", "Mx", "My", "Mz", "E", "Cv", "Chi"
     else 
-        write(12, 77) "T", "Ms", "Msx", "Msy", "Msz", "E", "Cv", "Chi"
+        write(12, 77) "#T", "Ms", "Msx", "Msy", "Msz", "E", "Cv", "Chi"
     end if
     77 format(A12,4(1x,A9),1x,A14,1x,A16,1x,A16)
     do while (T < fT)

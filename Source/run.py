@@ -90,17 +90,17 @@ if program != 'g':
         magnetization_choice = input()
 
         if magnetization_choice == '1':
-            magnetization_direction = 'easy'
+            mag_dir = 'easy'
         elif magnetization_choice == '2':
-            magnetization_direction = 'reversed_easy'
+            mag_dir = 'reversed_easy'
         elif magnetization_choice == '3':
-            magnetization_direction = 'p1'
+            mag_dir = 'p1'
         elif magnetization_choice == '4':
-            magnetization_direction = 'p2'
+            mag_dir = 'p2'
         elif magnetization_choice == '5':
-            magnetization_direction = 'p1_p2plane'
+            mag_dir = 'p1_p2plane'
         elif magnetization_choice == '6':
-            magnetization_direction = '45deg'
+            mag_dir = '45deg'
         else:
             print('Invalid input, exiting...')
             exit()    
@@ -126,11 +126,11 @@ def output_file(program, iseed, n):
     if name_choice == 'y':
         return f'{compound}n{n}{output_file_name}s{iseed + 1}' 
     elif program == 's':
-        return f'{compound}n{n}t{iT}o{order}md{mag_dir}k{k}H{iH}s{iseed + 1}'
+        return f'{compound}n{n}t{iT}o{order}md{mag_dir}k{k}H{iH}mcs{mcs}s{iseed + 1}'
     elif program == 't':
-        return f'{compound}n{n}dT{dT}o{order}md{mag_dir}k{k}H{iH}s{iseed + 1}'
+        return f'{compound}n{n}dT{dT}o{order}md{mag_dir}k{k}H{iH}mcs{mcs}s{iseed + 1}'
     elif program == 'h':
-        return f'{compound}n{n}dH{dH}o{order}md{mag_dir}k{k}t{iT}s{iseed + 1}'
+        return f'{compound}n{n}dH{dH}o{order}md{mag_dir}k{k}t{iT}mcs{mcs}s{iseed + 1}'
     elif program == 'g':
         return f'n{n}{compound}'
 

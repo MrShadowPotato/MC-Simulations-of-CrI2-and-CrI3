@@ -5,14 +5,38 @@ program hLoop
     implicit none
     real(8) :: start_time, end_time, time_elapsed
     real(8) :: MH, avg_MH, avg_energy, avg_mag, avg_mag_vec(3)
-    integer :: i
+    integer :: i, i2, index
     logical :: first_time = .true.
+    real(8), allocatable, dimension(:,:)  :: spins_ma, spins_mb
+    real(8) :: Ma, Mb, Ms, Ma_vec(3), Mb_vec(3), Ms_vec(3)
 
     call cpu_time(start_time)
     call read_parameters()
 
     neighbors = read_neighbors(Cr_atoms)
-    spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
+    if (compound == 'CrI3') then 
+        spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
+    else
+        spins_ma = generate_spins(Cr_atoms/2, spins_orientation, initial_magnetization_vector(:))
+        spins_mb = generate_spins(Cr_atoms/2, spins_orientation, -1*initial_magnetization_vector(:))
+        allocate(spins(Cr_atoms,3))
+        do i = 1, Cr_atoms/2
+            index = 2*i - 1
+            spins(index,:) = spins_ma(i,:)
+            Ma_vec = Ma_vec + spins_ma(i,:)
+            index = 2*i
+            spins(index,:) = spins_mb(i,:)
+            Mb_vec = Mb_vec + spins_mb(i,:)
+            
+        end do
+        Ma_vec = Ma_vec/Cr_atoms*2
+        Mb_vec = Mb_vec/Cr_atoms*2
+        Ms_vec = (Ma_vec/2 - Mb_vec/2)
+        write(6, *)'Ma:  ', sqrt(dot_product(Ma_vec, Ma_vec))!/Cr_atoms/2
+        write(6, *)'Mb:  ', sqrt(dot_product(Mb_vec, Mb_vec))!/Cr_atoms/2
+        write(6, *)'Ms:  ', sqrt(dot_product(Ms_vec, Ms_vec))!/Cr_atoms
+        
+    end if
 
     t = iT
     H = iH
@@ -21,8 +45,13 @@ program hLoop
     write(6, *) "Initial energy: ", system_energy/Cr_atoms
     write(6, *) "Initial magnetization: ", mag_vec(:)/Cr_atoms
     open(12, file='../data/hLoop/h'//output_file, status='unknown')
-    MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
+    if (compound == 'CrI3') then 
+        MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
+    else
+        MH = dot_product(Ms_vec, H_vector(:))
+    end if
 
+    
     !Write parameters to screen
     open(13, file='../data/hLoop/zh'//output_file, status='unknown') 
     write(13, 50) compound, seed
@@ -46,8 +75,11 @@ program hLoop
     write(13, 59) dS
     59 format(' dS= ', F3.1  )
     flush(13)
-
-
+    
+    
+    write(12, 60) '#H', 'MH', 'dH'
+    60 format(A8, 2x, A12, 2x, A8)
+    
     do while (H <= iH)
         if ((MH < -0.98).and.first_time) then 
             dH = -abs(dH)
@@ -62,15 +94,34 @@ program hLoop
         avg_MH = 0
         do i = 1, neq
             call metropolis_rng
-            
             avg_energy = avg_energy + system_energy
-            avg_mag = avg_mag + sqrt(dot_product(mag_vec, mag_vec))
-            avg_mag_vec = avg_mag_vec + mag_vec
-            
-            MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
-            avg_MH = avg_MH + MH
+            if (compound == 'CrI3') then 
+                avg_mag = avg_mag + sqrt(dot_product(mag_vec, mag_vec))
+                avg_mag_vec = avg_mag_vec + mag_vec
+                
+                MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
+                avg_MH = avg_MH + MH
+            else
+                do i2 = 1, Cr_atoms/2
+                    index = 2*i2 - 1
+                    spins_ma(i2,:) = spins(index,:) 
+                    Ma_vec = Ma_vec + spins_ma(i2,:)
+                    index = 2*i2
+                    spins_mb(i2,:) = spins(index,:) 
+                    Mb_vec = Mb_vec + spins_mb(i2,:)
+                end do
+                Ma_vec = Ma_vec/Cr_atoms*2
+                Mb_vec = Mb_vec/Cr_atoms*2
+                Ms_vec = (Ma_vec/2 - Mb_vec/2)
+                avg_mag = avg_mag + sqrt(dot_product(Ms_vec, Ms_vec))
+                avg_mag_vec = avg_mag_vec + Ms_vec
+
+                MH = dot_product(Ms_vec, H_vector(:))
+                avg_MH = avg_MH + MH
+            end if
         end do  
-        write(12,*) H, avg_MH/neq, dh!avg_energy/neq/Cr_atoms, avg_mag/Cr_atoms/neq, dh
+        write(12,33) H, avg_MH/neq, dh!avg_energy/neq/Cr_atoms, avg_mag/Cr_atoms/neq
+        33 format(F8.3, F12.8, F8.3)
         flush(12)
         H = H - dH
     end do
@@ -78,8 +129,8 @@ program hLoop
 
     call cpu_time(end_time)
     time_elapsed = end_time - start_time
-    write(6, *) "The program took:", time_elapsed, " seconds to run."
-
+    write(13, *) "The program took:", time_elapsed, " seconds to run."
+    close(13)
 
 
 end program hLoop   

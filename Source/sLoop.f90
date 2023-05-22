@@ -73,11 +73,11 @@ program sLoop
     flush(13)
 
     if (compound == 'CrI3') then
-        write(12, 37) 'MCS', 'M', 'E', 'Mx', 'My', 'Mz'
+        write(12, 37) '#MCS', 'M', 'E', 'Mx', 'My', 'Mz'
         37 format(A10, 1x, 5(A14, 1x))
 
     else 
-        write(12, 35) 'MCS', 'M', 'Ms', 'Ma', 'Mb', 'E'
+        write(12, 35) '#MCS', 'M', 'Ms', 'Ma', 'Mb', 'E'
         35 format(A10, 1x, 5(A14, 1x)) 
     end if 
 

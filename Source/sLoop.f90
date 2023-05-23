@@ -15,10 +15,12 @@ program sLoop
     call read_parameters()
 
 
-    neighbors = read_neighbors(Cr_atoms)
+    neighbors = read_neighbors(Cr_atoms, max_neighbors)
     if (compound == 'CrI3') then 
         spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
     else
+        allocate(spins_ma(Cr_atoms/2,3))
+        allocate(spins_mb(Cr_atoms/2,3))
         spins_ma = generate_spins(Cr_atoms/2, spins_orientation, initial_magnetization_vector(:))
         spins_mb = generate_spins(Cr_atoms/2, spins_orientation, -1*initial_magnetization_vector(:))
         allocate(spins(Cr_atoms,3))
@@ -68,8 +70,9 @@ program sLoop
     56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector!; write(13,*)
     57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
-    write(13, 58) dS
-    58 format(' dS= ', F3.1  )
+    write(13, 58) dS, g
+    58 format(' dS= ', F3.1, '    g= ', F3.1 )
+
     flush(13)
 
     if (compound == 'CrI3') then
@@ -89,6 +92,8 @@ program sLoop
             mag_vec(:)/Cr_atoms 
             34 format(I10,1x,F14.8,1x,F14.8,3(1x,F14.6))
         else 
+            Ma_vec = 0
+            Mb_vec = 0
             do i2 = 1, Cr_atoms/2
                 index = 2*i2 - 1
                 spins_ma(i2,:) = spins(index,:) 

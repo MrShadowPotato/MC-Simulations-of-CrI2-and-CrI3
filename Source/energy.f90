@@ -95,7 +95,7 @@ subroutine zeeman_energy(spin, energy)
     energy = 0.0d0
 
     !Zeeman energy
-    energy = energy - g * H * dot_product(spin(:), H_vector(:)) ! * muB / h_bar
+    energy = energy - g * H * dot_product(spin(:), H_vector(:)) * muB !/ h_bar
 
 end subroutine zeeman_energy
 

@@ -13,10 +13,12 @@ program hLoop
     call cpu_time(start_time)
     call read_parameters()
 
-    neighbors = read_neighbors(Cr_atoms)
+    neighbors = read_neighbors(Cr_atoms, max_neighbors)
     if (compound == 'CrI3') then 
         spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
     else
+        allocate(spins_ma(Cr_atoms/2, 3))
+        allocate(spins_mb(Cr_atoms/2, 3))
         spins_ma = generate_spins(Cr_atoms/2, spins_orientation, initial_magnetization_vector(:))
         spins_mb = generate_spins(Cr_atoms/2, spins_orientation, -1*initial_magnetization_vector(:))
         allocate(spins(Cr_atoms,3))
@@ -72,8 +74,8 @@ program hLoop
     56 format(' initial_magnetization_vector= ', 3(XF8.5)  )
     write(13, 57) H_vector, easy_vector
     57 format(' H_vector= ', 3(XF8.5),'    easy_vector= ', 3(XF8.5)  )
-    write(13, 59) dS
-    59 format(' dS= ', F3.1  )
+    write(13, 59) dS, g
+    59 format(' dS= ', F3.1, '    g= ', F3.1 )
     flush(13)
     
     
@@ -102,6 +104,8 @@ program hLoop
                 MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
                 avg_MH = avg_MH + MH
             else
+                Ma_vec = 0 
+                Mb_vec = 0
                 do i2 = 1, Cr_atoms/2
                     index = 2*i2 - 1
                     spins_ma(i2,:) = spins(index,:) 

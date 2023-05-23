@@ -17,17 +17,19 @@ module constants
 
 contains 
 
-function read_neighbors(Cr_atoms)  result(neighbors)
+function read_neighbors(Cr_atoms, max_neighbors)  result(neighbors)
     implicit none
     integer, intent(in) :: Cr_atoms
+    integer, intent(in) :: max_neighbors
     integer, dimension(:,:), allocatable :: neighbors
     integer :: i
     character(10) :: nx_num
     write(nx_num, '(I0)') nx
     open(1, file='../neighbors/'//'n'//trim(nx_num)//'Cr_'//trim(compound)//'neighbors.txt', status='old')
-    allocate(neighbors(Cr_atoms, 3))
+
+    allocate(neighbors(Cr_atoms, max_neighbors))
     do i = 1, Cr_atoms
-            read(1, '(3(I8))') neighbors(i,1), neighbors(i,2), neighbors(i,3)
+            read(1,*) neighbors(i,:)
     end do
 end function read_neighbors
 

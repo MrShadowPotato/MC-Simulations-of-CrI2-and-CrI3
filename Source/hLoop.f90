@@ -83,7 +83,7 @@ program hLoop
     60 format(A8, 2x, A12, 2x, A8)
     
     do while (H <= iH)
-        if ((MH < -0.98).and.first_time) then 
+        if (((MH < -0.98).and.first_time).or. (H < -30)) then 
             dH = -abs(dH)
             first_time = .false.
         end if

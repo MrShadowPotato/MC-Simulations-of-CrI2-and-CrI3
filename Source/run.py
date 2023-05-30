@@ -20,13 +20,14 @@ name_choice = 'no'
 
 
 seeds = [-48703, -23670, -13321, -67541, -91793]
+#seeds = [-48703]
 print('Seeds: ', seeds)
 
 print('Select the program:')
-print('sLoop:   (s)')
-print('tLoop:   (t)')
-print('hLoop:   (h)')
-print('CrIxgen: (g)')
+print('sLoop:          (s)')
+print('tLoop:          (t)')
+print('hLoop:          (h)')
+print('CrIxgen:        (g)')
 program = input('Else for exit:   ')
 
 
@@ -51,7 +52,7 @@ if program != 'g':
     print('J = ', J)
     use_k = input('Use k?: (y/else)')
     if use_k == 'y':
-        k = 0.67
+        k = 0.94
     print('k = ', k)
 
 

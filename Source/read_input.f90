@@ -1,7 +1,7 @@
 module read_input 
     use constants
     implicit none
-    character(len=1000) :: dummy, magnetization_direction
+    character(len=1000) :: dummy, magnetization_direction, H_vector_direction
     character(len=100), public :: output_file
     integer :: mcs
     integer :: neq
@@ -13,7 +13,7 @@ module read_input
     real(8), dimension(:,:), allocatable :: basis
     real(8), dimension(8, 3) :: basis_CrI3 ! Basis vectors for the CrI3 structure.
     real(8), dimension(6, 3) :: basis_CrI2 ! Basis vectors for the CrI2 structure.
-    real(8), dimension(3) :: easy_vector, easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
+    real(8), dimension(3) :: easy_vectorCrI3, easy_vectorCrI2 !Easy axis vector.
     real(8), dimension(3), public :: initial_magnetization_vector
 
     character(len=2), dimension(8) :: elementsCrI3 = (/ 'Cr', 'Cr', 'I ', 'I ', 'I ', 'I ', 'I ', 'I ' /)
@@ -51,6 +51,9 @@ contains
         read(10,*) 
         read(10,*) dummy, spins_orientation
         read(10,*) dummy, magnetization_direction
+        !H_vector direction
+        read(10,*)
+        read(10,*) dummy, H_vector_direction
         !Parameters for tLoop
         read(10,*) ; read(10,*) 
         read(10,*) dummy, fT
@@ -77,9 +80,9 @@ contains
         primitiveCrI3(1, :) = [6.8911914825, 0.0, 0.0]
         primitiveCrI3(2, :) = [-3.4488059462999998, 5.9711638719, 0.0]
         !--> CrI2
-        primitiveCrI2(1, :) = [3.9350889407837069, 0.0, 0.0]
-        primitiveCrI2(2, :) = [0.0, 7.793970515734439, -0.0155822353114624]
-
+        primitiveCrI2(1, :) = [7.8128747232909328, 0.0, 0.0]
+        primitiveCrI2(2, :) = [0.0, 3.9376100444671804, 0.0]
+        
 
         !Define the lattice vectors for periodic boundary conditions.
         !--> CrI3
@@ -114,8 +117,8 @@ contains
         basis_CrI3(7,:) = [1.19604098486642, 2.06898570270974, 8.15546418188776]   !I
         basis_CrI3(8,:) = [4.64469384948989, 3.81029176486010, 8.15107346274473]   !I
         !--> CrI2
-        basis_CrI2(1,:) = [0.00000000000000, 1.18048232888026, 15.66708540526766]  !Cr
-        basis_CrI2(2,:) = [1.96754466301406, 5.07735235387682, 15.66009018229279]  !Cr
+        basis_CrI2(1,:) = [0.00000000000000d0, 0.0d0, 5d0]  !Cr
+        basis_CrI2(2,:) = [3.90643736164530, 1.96880502223353, 5.00000000000000]  !Cr
         basis_CrI2(3,:) = [1.96754466301406, 2.14455628147048, 17.30559462841125]  !I 
         basis_CrI2(4,:) = [1.96754466301406, 0.21647035484051, 14.02945080633759]  !I
         basis_CrI2(5,:) = [0.00000000000000, 6.04092814648801, 17.29708073114964]  !I
@@ -127,7 +130,7 @@ contains
             primitive = primitiveCrI3
             vlattice = vlatticeCrI3
             easy_vector = easy_vectorCrI3
-            H_vector = easy_vector!!!!
+            !H_vector = easy_vector!!!!
             allocate(basis(8,3))
             basis(:,:) = basis_CrI3(:,:)
             max_neighbors = 3
@@ -141,8 +144,9 @@ contains
         else if (compound == 'CrI2') then
             primitive = primitiveCrI2
             vlattice = vlatticeCrI2
-            easy_vector = easy_vectorCrI2
-            H_vector = easy_vector!!!!!
+            !easy_vector = easy_vectorCrI2
+            easy_vector(:) = [-0.861d0, 0.0d0, 0.509d0]
+            !H_vector = easy_vector!!!!!
             allocate(basis(6,3))
             basis(:,:) = basis_CrI2(:,:)
             max_neighbors = 4
@@ -183,6 +187,32 @@ contains
 
         initial_magnetization_vector = initial_magnetization_vector / &
         sqrt(dot_product(initial_magnetization_vector, initial_magnetization_vector))
+
+
+        !Define H_vector
+        if (H_vector_direction == 'easy') then
+            H_vector = easy_vector
+
+        else if (H_vector_direction == 'reversed_easy') then
+            H_vector = [0.509d0, 0.0d0, 0.861d0]
+
+        else if (H_vector_direction == 'p1') then !takes the direction of the first primitive vector
+            H_vector = primitive(1,:)
+
+        else if (H_vector_direction == 'p2') then
+            H_vector = primitive(2,:)
+
+        else if (H_vector_direction == 'p1_p2plane') then
+            H_vector = primitive(1,:) + primitive(2,:)
+        else if (H_vector_direction == '45deg') then 
+            H_vector = primitive(1,:) + primitive(2,:)
+            H_vector = H_vector /  &
+            sqrt(dot_product(H_vector, H_vector))
+            H_vector = H_vector + easy_vector
+        end if
+        
+        H_vector = H_vector / &
+        sqrt(dot_product(H_vector, H_vector))
 
     end subroutine read_parameters
     

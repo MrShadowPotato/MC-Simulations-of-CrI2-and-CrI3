@@ -78,11 +78,24 @@ subroutine anisotropy_energy(spin,energy)
     implicit none
     real(8), intent(in) :: spin(3)
     real(8), intent(out) :: energy
+    real(8) :: theta, phi
 
     energy = 0.0d0
-
     !Anisotropy energy
-    energy = energy - anisotropy * dot_product(spin(:), anisotropy_vector(:))**2
+    if (compound == 'CrI3') then 
+        energy = energy - anisotropy * dot_product(spin(:), easy_vector(:))**2
+        !write(6,*) easy_vector
+    else if  (compound == 'CrI2') then !signo?
+        !energy = energy + (1.266 - 0.082  * spin(3)**2 + 2 * 0.695 * spin(3) * spin(1) + &
+        !2 * -0.848 * (spin(1)**2 - spin(2)**2))
+        theta = acos(spin(3))
+        phi = atan2(spin(2), spin(1))
+        energy = energy + 1.266 &
+        - 0.082  * cos(theta)**2 &
+        + 0.695 * sin(2*theta) * cos(phi) & 
+        - 0.848 * sin(theta)**2 * cos(2*phi)
+
+    end if 
 
 end subroutine anisotropy_energy
 

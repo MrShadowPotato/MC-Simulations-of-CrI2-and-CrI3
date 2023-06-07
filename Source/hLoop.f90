@@ -9,6 +9,8 @@ program hLoop
     logical :: first_time = .true.
     real(8), allocatable, dimension(:,:)  :: spins_ma, spins_mb
     real(8) :: Ma, Mb, Ms, Ma_vec(3), Mb_vec(3), Ms_vec(3)
+    real(8) :: Ma_angle, Mb_angle, canting_angle, canting_angle_avg, canting_angle_avg_af, &
+    canting_angle_avg_f
 
     call cpu_time(start_time)
     call read_parameters()
@@ -16,7 +18,7 @@ program hLoop
     neighbors = read_neighbors(Cr_atoms, max_neighbors)
     if (compound == 'CrI3') then 
         spins = generate_spins(Cr_atoms, spins_orientation, initial_magnetization_vector)
-    else
+    else if (compound == 'CrI2') then
         allocate(spins_ma(Cr_atoms/2, 3))
         allocate(spins_mb(Cr_atoms/2, 3))
         spins_ma = generate_spins(Cr_atoms/2, spins_orientation, initial_magnetization_vector(:))
@@ -34,10 +36,38 @@ program hLoop
         Ma_vec = Ma_vec/Cr_atoms*2
         Mb_vec = Mb_vec/Cr_atoms*2
         Ms_vec = (Ma_vec/2 - Mb_vec/2)
+
+        Ma_angle = dot_product(Ma_vec, easy_vector(:))/sqrt(dot_product(Ma_vec, Ma_vec))
+        Ma_angle = max(-1.0, min(1.0, Ma_angle))
+        Ma_angle = acos(Ma_angle)
+
+        Mb_angle = dot_product(Mb_vec, - easy_vector(:))/sqrt(dot_product(Mb_vec, Mb_vec))
+        Mb_angle = max(-1.0, min(1.0, Mb_angle))
+        Mb_angle = acos(Mb_angle)
+        !Ma_angle = acos(dot_product(Ma_vec, easy_vector(:))/sqrt(dot_product(Ma_vec, Ma_vec)))
+        !cos_angle = max(-1.0, min(1.0, Ma_angle))
+        !Mb_angle = acos(dot_product(Mb_vec, - easy_vector(:))/sqrt(dot_product(Mb_vec, Mb_vec)))
+        canting_angle = Ma_angle/2 + Mb_angle/2
+        write(6,*) 'Easy axis: ', easy_vector(:)
+        write(6, *)'|easy|', sqrt(dot_product(easy_vector, easy_vector))
         write(6, *)'Ma:  ', sqrt(dot_product(Ma_vec, Ma_vec))!/Cr_atoms/2
         write(6, *)'Mb:  ', sqrt(dot_product(Mb_vec, Mb_vec))!/Cr_atoms/2
-        write(6, *)'Ms:  ', sqrt(dot_product(Ms_vec, Ms_vec))!/Cr_atoms
-        
+        write(6, *)'Mav:  ', Ma_vec(:)
+        write(6, *)'Ma:   ', sqrt(dot_product(Ma_vec, Ma_vec))
+        write(6, *)'Mbv:  ', Mb_vec(:)
+        write(6, *)'Mb:   ', sqrt(dot_product(Mb_vec, Mb_vec))
+        write(6,*) 'Ma_angle: ', Ma_angle !* 180 / pi
+        write(6,*) 'Mb_angle: ', Mb_angle !* 180 / pi
+        write(6,*) 'canting_angle: ', canting_angle !* 180 / pi
+
+        write(6,*) 'Theta Ma', acos(Ma_vec(3)) * 180 / pi
+        write(6,*) 'Phi Ma', atan2(Ma_vec(2), Ma_vec(1)) * 180 / pi
+        write(6,*) 'Theta Mb', acos(Mb_vec(3)) * 180 / pi
+        write(6,*) 'Phi Mb', atan2(Mb_vec(2), Mb_vec(1)) * 180 / pi
+        write(6,*) 'Theta Easy' , acos(easy_vector(3)) * 180 / pi
+        write(6,*) 'Phi Easy', atan2(easy_vector(2), easy_vector(1)) * 180 / pi
+        !stop 
+
     end if
 
     t = iT
@@ -45,12 +75,10 @@ program hLoop
     call calculate_system_energy
     mag_vec = calculate_initial_magnetization_vector(spins)
     write(6, *) "Initial energy: ", system_energy/Cr_atoms
-    write(6, *) "Initial magnetization: ", mag_vec(:)/Cr_atoms
     open(12, file='../data/hLoop/h'//output_file, status='unknown')
     if (compound == 'CrI3') then 
+        write(6, *) "Initial magnetization: ", mag_vec(:)/Cr_atoms
         MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
-    else
-        MH = dot_product(Ms_vec, H_vector(:))
     end if
 
     
@@ -78,32 +106,51 @@ program hLoop
     59 format(' dS= ', F3.1, '    g= ', F3.1 )
     flush(13)
     
+  
+  
     
-    write(12, 60) '#H', 'MH', 'dH'
-    60 format(A8, 2x, A12, 2x, A8)
-    
-    do while (H <= iH)
-        if (((MH < -0.98).and.first_time).or. (H < -30)) then 
-            dH = -abs(dH)
-            first_time = .false.
-        end if
-        do i = 1, mcs
-            call metropolis_rng
-        end do
-        avg_energy = 0
-        avg_mag = 0
-        avg_mag_vec = 0
-        avg_MH = 0
-        do i = 1, neq
-            call metropolis_rng
-            avg_energy = avg_energy + system_energy
-            if (compound == 'CrI3') then 
+    if (compound == 'CrI3') then 
+        write(12, 60) '#H', 'MH', 'dH'
+        60 format(A8, 2x, A12, 2x, A8)
+        do while (H <= iH)
+            if (((MH < -0.98).and.first_time).or. (H < -30)) then 
+                dH = -abs(dH)
+                first_time = .false.
+            end if
+            do i = 1, mcs
+                call metropolis_rng
+            end do
+            avg_energy = 0
+            avg_mag = 0
+            avg_mag_vec = 0
+            avg_MH = 0
+            do i = 1, neq
+                call metropolis_rng
+                avg_energy = avg_energy + system_energy
                 avg_mag = avg_mag + sqrt(dot_product(mag_vec, mag_vec))
                 avg_mag_vec = avg_mag_vec + mag_vec
-                
                 MH = dot_product(mag_vec, H_vector(:))/Cr_atoms
                 avg_MH = avg_MH + MH
-            else
+            end do  
+            write(12,33) H, avg_MH/neq, dh!avg_energy/neq/Cr_atoms, avg_mag/Cr_atoms/neq
+            33 format(F8.3, F12.8, F8.3)
+            flush(12)
+            H = H - dH
+        end do
+    else if (compound == 'CrI2') then 
+        H = 0
+        write(12, 36) '#H', 'CA_avg', 'CA_avg_F', 'CA_avg_AF'
+        36 format(A8, 2x, A12, 2x, A12, 2x, A12)
+        do while (H < iH)
+            do i = 1, mcs
+                call metropolis_rng
+                
+            end do
+            canting_angle_avg_f = 0
+            canting_angle_avg_af = 0
+            canting_angle_avg = 0
+            do i = 1, neq
+                call metropolis_rng
                 Ma_vec = 0 
                 Mb_vec = 0
                 do i2 = 1, Cr_atoms/2
@@ -114,21 +161,48 @@ program hLoop
                     spins_mb(i2,:) = spins(index,:) 
                     Mb_vec = Mb_vec + spins_mb(i2,:)
                 end do
+
                 Ma_vec = Ma_vec/Cr_atoms*2
                 Mb_vec = Mb_vec/Cr_atoms*2
-                Ms_vec = (Ma_vec/2 - Mb_vec/2)
-                avg_mag = avg_mag + sqrt(dot_product(Ms_vec, Ms_vec))
-                avg_mag_vec = avg_mag_vec + Ms_vec
 
-                MH = dot_product(Ms_vec, H_vector(:))
-                avg_MH = avg_MH + MH
-            end if
-        end do  
-        write(12,33) H, avg_MH/neq, dh!avg_energy/neq/Cr_atoms, avg_mag/Cr_atoms/neq
-        33 format(F8.3, F12.8, F8.3)
-        flush(12)
-        H = H - dH
-    end do
+                !write(6,*) 'Theta Ma', acos(Ma_vec(3)) * 180 / pi
+                !write(6,*) 'Phi Ma', atan2(Ma_vec(2), Ma_vec(1)) * 180 / pi
+                !write(6,*) 'Theta Mb', acos(Mb_vec(3)) * 180 / pi
+                !write(6,*) 'Phi Mb', atan2(Mb_vec(2), Mb_vec(1)) * 180 / pi
+                !write(6,*) 'Theta Easy' , acos(easy_vector(3)) * 180 / pi
+                !write(6,*) 'Phi Easy', atan2(easy_vector(2), easy_vector(1)) * 180 / pi
+                !stop 
+                Ma_angle = dot_product(Ma_vec, easy_vector(:))/sqrt(dot_product(Ma_vec, Ma_vec))
+                Ma_angle = max(-1.0, min(1.0, Ma_angle))
+                Ma_angle = acos(Ma_angle)
+
+                Mb_angle = dot_product(Mb_vec, -easy_vector(:))/sqrt(dot_product(Mb_vec, Mb_vec))
+                Mb_angle = max(-1.0, min(1.0, Mb_angle))
+                Mb_angle = acos(Mb_angle)
+                !Ma_angle = acos(dot_product(Ma_vec, easy_vector(:))/sqrt(dot_product(Ma_vec, Ma_vec)))
+                !Mb_angle = acos(dot_product(Mb_vec, - easy_vector(:))/sqrt(dot_product(Mb_vec, Mb_vec)))
+                
+                canting_angle = Ma_angle/2 + Mb_angle/2
+                !write(6,*) 'Easy vector ', easy_vector(:)
+                !write(6,*) 'Ma: ', Ma_vec(:)
+                !write(6,*) 'Mb: ', Mb_vec(:)
+                !write(6,*) 'Ma_angle: ', Ma_angle * 180 / pi
+                !write(6,*) 'Mb_angle: ', Mb_angle * 180 / pi
+                !write(6,*) 'canting_angle: ', canting_angle * 180 / pi
+                !stop
+                canting_angle_avg_f = canting_angle_avg_f + Ma_angle
+                canting_angle_avg_af = canting_angle_avg_af + Mb_angle
+                canting_angle_avg = canting_angle_avg + canting_angle
+
+            end do
+            write(12,37) H, canting_angle_avg/neq*180/pi, canting_angle_avg_f/neq*180/pi, canting_angle_avg_af/neq*180/pi
+            37 format(F8.3, 2x, F12.8, 2x, F12.8, 2x, F12.8)
+            flush(12)
+        H = H + dh
+        end do 
+    end if 
+
+
     close (12)
 
     call cpu_time(end_time)

@@ -10,7 +10,10 @@ g = 3.8
 mcs = 5000
 neq = 5000
 order = 2
+magnetization_choice = '1'
 mag_dir = 'easy'
+H_vector_direction_choice = '4'
+H_vector_direction = 'p1'
 fT = 100
 dT = 0.1
 dH = 0.1
@@ -62,6 +65,32 @@ if program != 'g':
         dT = float(input('Enter the dT: '))
         fT = float(input('Enter the fT: '))
     iH = float(input('Enter the iH (H): '))
+    if iH != 0:
+        print('\n'*2,'*'*20,'\n', 'Now choose the direction for H field vector: ')
+        print('For Easy axis direction press\n--------> [1]\n')
+        print('For Reversed Easy axis direction press\n--------> [2]\n')
+        print('For x (p1) axis direction press\n--------> [3]\n')
+        print('For y (p2) axis direction press\n--------> [4]\n')
+        print('For xy plane (p1 + p2) direction press\n--------> [5]\n')
+        print('For 45deg between xy plance and easy axis direction press\n--------> [6]\n')
+
+        H_vector_direction_choice = input()
+
+        if H_vector_direction_choice == '1':
+            H_vector_direction = 'easy'
+        elif H_vector_direction_choice == '2':
+            H_vector_direction = 'reversed_easy'
+        elif H_vector_direction_choice == '3':
+            H_vector_direction = 'p1'
+        elif H_vector_direction_choice == '4':
+            H_vector_direction = 'p2'
+        elif H_vector_direction_choice == '5':
+            H_vector_direction = 'p1_p2plane'
+        elif H_vector_direction_choice == '6':
+            H_vector_direction = '45deg'
+        else:
+            print('Invalid input, exiting...')
+            exit()    
     if program == 'h':
         dH = float(input('Enter the dH: '))
 
@@ -127,11 +156,11 @@ def output_file(program, iseed, n):
     if name_choice == 'y':
         return f'{compound}n{n}{output_file_name}s{iseed + 1}' 
     elif program == 's':
-        return f'{compound}n{n}t{iT}o{order}md{mag_dir}k{k}H{iH}mcs{mcs}s{iseed + 1}'
+        return f'{compound}n{n}t{iT}o{order}md{mag_dir}hd{H_vector_direction}k{k}H{iH}mcs{mcs}s{iseed + 1}'
     elif program == 't':
-        return f'{compound}n{n}dT{dT}o{order}md{mag_dir}k{k}H{iH}mcs{mcs}s{iseed + 1}'
+        return f'{compound}n{n}dT{dT}o{order}md{mag_dir}hd{H_vector_direction}k{k}H{iH}mcs{mcs}s{iseed + 1}'
     elif program == 'h':
-        return f'{compound}n{n}dH{dH}o{order}md{mag_dir}k{k}t{iT}mcs{mcs}s{iseed + 1}'
+        return f'{compound}n{n}dH{dH}o{order}md{mag_dir}hd{H_vector_direction}k{k}t{iT}mcs{mcs}s{iseed + 1}'
     elif program == 'g':
         return f'n{n}{compound}'
 
@@ -157,6 +186,8 @@ def write_input(program, iseed, n):
         f.write('**** Initial spin config ****\n')
         f.write(f'order= {order}\n')
         f.write(f'mag_dir= {mag_dir}\n')
+        f.write('**** H_vector_direction ****\n')
+        f.write(f'h_dir= {H_vector_direction}\n')
         f.write('******************************************\n')
         f.write('Data for tLoop \n')
         f.write(f'fT= {fT}\n')
@@ -184,6 +215,8 @@ if program != 'g':
 print('You are going to print the following values for N:')
 print(list(range(initial_n, final_n + 1, step_n)))
 print('That would call a total of ', number_of_simulations, ' simulations.')
+print('The name of the output files will have the following format:\n ')
+print('\n', output_file(program, 0, 0), '\n'*2)
 print('Are you sure you want to continue?')
 print('Enter (y) to continue or anything else to exit: ')
 confirmation = input()
@@ -197,6 +230,7 @@ if confirmation == 'y':
             write_input(program, iseed, n)
             exe = executable(program)
             log = f'{program}{output_file(program, iseed, n)}.log'
+            print('Writing logs to: ', log)
             subprocess.run(f'nohup {exe} > ../logs/{log} &', shell=True)
             time.sleep(0.1)
 else: 

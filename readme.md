@@ -99,20 +99,3 @@ The simulation takes various parameters including:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Citation
-
-If you use this code for academic work, please cite:
-
-```
-@article{YourName2023,
-  title={Monte Carlo Simulations of Magnetic Properties in CrI2 and CrI3 Monolayers},
-  author={Your Name},
-  journal={Your University/Institution},
-  year={2023}
-}
-```
-
-
-
-

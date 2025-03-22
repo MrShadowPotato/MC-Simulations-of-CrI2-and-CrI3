@@ -1,0 +1,28 @@
+Name of the file where the output data will be stored:
+output_CrI2
+**** System parameters ****
+nx= 10
+ny= 10
+compound= CrI2
+J= -4.73
+K= 0.0
+iH= 0.0
+iT= 1.0
+g= 3.8
+**** Montecarlo parameters ****
+mcs= 5000
+neq= 1000
+seed= 12345
+**** Initial spin config ****
+order= 2
+mag_dir= easy
+**** H_vector_direction ****
+h_dir= easy
+******************************************
+Data for tLoop 
+fT= 50.0
+dT= 1.0
+Data for hLoop 
+dH= 0.5
+**** Spin multiplier ****
+dS= 0.2 

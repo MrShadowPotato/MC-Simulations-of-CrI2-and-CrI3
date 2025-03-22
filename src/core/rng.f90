@@ -7,12 +7,12 @@ function random_integer(a, b, seed) result(rand_int)
     integer, intent(inout) :: seed
     integer, intent(in) :: a, b
     integer :: rand_int
-    real :: rand_real
+    real(8) :: rand_real
     ! Generate a random real number between 0 and 1 using RANDOM_NUMBER
     !call RANDOM_NUMBER(rand_real)
     rand_real = ran2(seed)
     ! Scale the random number to be between a and b
-    rand_int = a + int(real(b - a + 1) * rand_real)
+    rand_int = a + int(real(b - a + 1, kind=8) * rand_real)
 end function random_integer
 
 function random_normal_vector(seed) result(sxx)
@@ -26,16 +26,16 @@ function random_normal_vector(seed) result(sxx)
     real(8) :: ransq, ranl, ranp, ranh, sxx(3)
     
 
-    ransq=2.
-     do while (ransq.ge.1)
-        ranl=1.-2.*ran2(seed)
-        ranp=1.-2.*ran2(seed)
+    ransq=2.0d0  ! Using d0 suffix for double precision literal
+     do while (ransq.ge.1.0d0)
+        ranl=1.0d0-2.0d0*ran2(seed)
+        ranp=1.0d0-2.0d0*ran2(seed)
         ransq=ranl*ranl+ranp*ranp
      enddo
-     ranh=2.*sqrt(1.-ransq)
+     ranh=2.0d0*sqrt(1.0d0-ransq)
      sxx(1)=ranl*ranh
      sxx(2)=ranp*ranh
-     sxx(3)=(1-2.d0*ransq)
+     sxx(3)=(1.0d0-2.0d0*ransq)
 end function random_normal_vector
 
 
@@ -51,10 +51,10 @@ DOUBLE PRECISION FUNCTION ran2(idum)
   !integer to initialize; thereafter, do not alter idum except to reinitialize.
   !The period of this generator is about 3.1� 10^18.
   INTEGER(K4B), PARAMETER :: IA=16807,IM=2147483647,IQ=127773,IR=2836
-  REAL, SAVE :: am
+  REAL(8), SAVE :: am  ! Changed from REAL to REAL(8) for double precision
   INTEGER(K4B), SAVE :: ix=-1,iy=-1,k
   if (idum <= 0 .or. iy < 0) then    !Initialize.
-     am=nearest(1.0,-1.0)/IM
+     am=nearest(1.0d0,-1.0d0)/REAL(IM, kind=8)  ! Explicit conversion to REAL(8)
      iy=ior(ieor(888889999,abs(idum)),1)
      ix=ieor(777755555,abs(idum))
      idum=abs(idum)+1    !Set idum positive.

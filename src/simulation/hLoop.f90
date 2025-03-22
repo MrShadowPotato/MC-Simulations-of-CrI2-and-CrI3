@@ -4,13 +4,16 @@ program hLoop
     use mag
     implicit none
     real(8) :: start_time, end_time, time_elapsed
-    real(8) :: MH, avg_MH, avg_energy, avg_mag, avg_mag_vec(3)
+    real(8) :: Ma_angle, Mb_angle, canting_angle
+    real(8) :: canting_angle_avg, canting_angle_avg_f, canting_angle_avg_af
+    real(8) :: avg_energy, avg_mag, avg_mag_vec(3)
+    real(8) :: MH, avg_MH
     integer :: i, i2, index
     logical :: first_time = .true.
     real(8), allocatable, dimension(:,:)  :: spins_ma, spins_mb
-    real(8) :: Ma, Mb, Ms, Ma_vec(3), Mb_vec(3), Ms_vec(3)
-    real(8) :: Ma_angle, Mb_angle, canting_angle, canting_angle_avg, canting_angle_avg_af, &
-    canting_angle_avg_f
+    real(8) :: Ma_vec(3), Mb_vec(3), Ms_vec(3)
+
+    MH = 0.0d0  ! Initialize MH to prevent uninitialized use warning
 
     call cpu_time(start_time)
     call read_parameters()

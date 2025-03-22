@@ -9,7 +9,7 @@ program tLoop
     real(8) :: avg_energy, avg_mag, avg_energy2, avg_mag2
     real(8) :: avg_mag_vec(3)
     real(8), allocatable, dimension(:,:)  :: spins_ma, spins_mb
-    real(8) :: Ma, Mb, Ms, Ma_vec(3), Mb_vec(3), Ms_vec(3)
+    real(8) :: Ma_vec(3), Mb_vec(3), Ms_vec(3)
     integer :: i, i2, index
 
 
